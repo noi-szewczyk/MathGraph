@@ -21,7 +21,9 @@ from threading import Timer
 from typing import Tuple
 
 from UIFixedElements import *
-from arcade.shape_list import *
+from arcade import shape_list
+from arcade import gui, geometry, color, load_texture, Text, SpriteList, View, Window
+import arcade.types
 from formula import Formula, TranslateError, ArgumentOutOfRange
 from player import Player
 import numpy as np
@@ -38,7 +40,7 @@ class Game:
         self.friendly_fire = friendly_fire_enable
         self.prev_active_player = None
         self.max_time_s = max_time_s
-        self.time = max_time_s  # in-game timer time
+        self.timer_time = max_time_s  # in-game timer time
         self.obstacles = []  # list of obstacle polygons
         self.obstacle_frequency = 20  # average obstacle frequency in %
 
@@ -52,7 +54,7 @@ class Game:
         self.x_edge = y_edge * proportion_x2y
 
         # players initializing
-        self.players_sprites_list = arcade.SpriteList(use_spatial_hash=True)
+        self.players_sprites_list = SpriteList(use_spatial_hash=True)
         self.left_team = left_team
         self.right_team = right_team
         self.all_players = left_team + right_team
@@ -61,16 +63,18 @@ class Game:
         self.shooting = False
         self.formula_current_x = None  # when shooting, shows the relative x of the end of last segment
         self.formula = None  # Formula class object
+        self.obstacles_color = ()
+        self.obstacles_border_color = ()
 
         # list of formula segments
-        self.formula_segments = ShapeElementList()
+        self.formula_segments = shape_list.ShapeElementList()
 
     def prepare(self):
         self.prev_active_player = None
-        self.players_sprites_list = arcade.SpriteList(use_spatial_hash=True)
+        self.players_sprites_list = SpriteList(use_spatial_hash=True)
         self.shooting = False
         self.formula_current_x = None
-        self.formula_segments = ShapeElementList()
+        self.formula_segments = shape_list.ShapeElementList()
         self.all_players = self.left_team + self.right_team
 
         # choosing obstacles color
@@ -91,19 +95,22 @@ class Game:
             player.alive = True
 
 
-class GameView(arcade.View):
+class GameView(View):
 
-    def __init__(self, window: arcade.Window):
+    def __init__(self, window: Window):
         super().__init__(window)
 
-        self.background = arcade.load_texture('textures/GameBackground_4k.jpg')
-        self.panel_texture = arcade.load_texture('textures/bottom_panel_4k.jpg')
+        self.background = load_texture('textures/GameBackground_4k.jpg')
+        self.panel_texture = load_texture('textures/bottom_panel_4k.jpg')
 
-        self.game_field_objects = arcade.shape_list.ShapeElementList()  # shape_list to contain all static elements
+        self.formula_field: AdvancedUIInputText = None
+        self.time_text: Text = None
+        self.game_field_objects = shape_list.ShapeElementList()  # shape_list to contain all static elements
         # of game field
-        self.nick_names = []  # list to keep nick arcade.Text objects
+        self.nick_names = []  # list to keep nick Text objects
 
-        if not window.lobby.game: raise Exception
+        if not window.lobby.game:
+            raise Exception
 
         # creating sprites of players
         for player in window.lobby.game.all_players:
@@ -132,37 +139,38 @@ class GameView(arcade.View):
         self.text_to_draw = []
 
         # adding UI
-        self.manager = arcade.gui.UIManager()  # for all gui elements
+        self.manager = gui.UIManager()  # for all gui elements
         self.add_ui()
 
         # generating obstacles
         self.create_obstacles()
 
         # adding thread to timer func
-        window.lobby.game.time = window.lobby.game.max_time_s
+        window.lobby.game.timer_time = window.lobby.game.max_time_s
         self.timer = Timer(1, self.time_tick)
         self.timer.start()
 
     def create_obstacles(self):
         """This method generates obstacles for current game
-        (now only localy) """
+        (now only locally) """
         print('Creating obstacles')
         game = self.window.lobby.game
-        max_polygons = int(game.obstacle_frequency*0.8*game.proportion_x2y/game.proportion_x2y_max)
-        for i in range(int(max_polygons* (1 + random.randint(-15, 15)/100))):  # creating +-15% from max_polygons times
+        max_polygons = int(game.obstacle_frequency * 0.8 * game.proportion_x2y / game.proportion_x2y_max)
+        for i in range(
+                int(max_polygons * (1 + random.randint(-15, 15) / 100))):  # creating +-15% from max_polygons times
             """generating new polygon"""
             while True:
                 vertices = random.randint(3, 20)
-                max_radius =int( random.randint(20, 150 + 3 * vertices) * self.window.scale)
+                max_radius = int(random.randint(20, 150 + 3 * vertices) * self.window.scale)
 
                 # generating angles as part of 2 Pi radians:
-                sum = 0
+                angle_sum = 0
                 angles = []
                 for _ in range(vertices):
                     angles.append(random.randint(35, 100))
-                    sum += angles[-1]
+                    angle_sum += angles[-1]
                 for angle in range(vertices):
-                    angles[angle] = angles[angle] / sum
+                    angles[angle] = angles[angle] / angle_sum
                 obstacle = []
                 center_x = random.randint(self.graph_left_edge + max_radius, self.graph_right_edge - max_radius)
                 center_y = random.randint(self.graph_bottom_edge + max_radius, self.graph_top_edge - max_radius)
@@ -180,35 +188,36 @@ class GameView(arcade.View):
                     )
 
                 # checking polygon for collision with others
-                isIntersecting = False
+                is_intersecting = False
                 for polygon in game.obstacles:
-                    if arcade.geometry.are_polygons_intersecting(polygon,obstacle):
-                        isIntersecting = True
+                    if geometry.are_polygons_intersecting(polygon, obstacle):
+                        is_intersecting = True
                         break
-                if isIntersecting: continue
+                if is_intersecting:
+                    continue
 
                 # checking for collision with players
                 for player in game.all_players:
-                    player_polygon = []
-                    player_polygon.append((player.sprite.center_x-player.sprite.width/2,
-                                           player.sprite.center_y+player.sprite.height/2))
-                    player_polygon.append((player.sprite.center_x + player.sprite.width / 2,
-                                           player.sprite.center_y + player.sprite.height / 2))
-                    player_polygon.append((player.sprite.center_x + player.sprite.width / 2,
-                                           player.sprite.center_y - player.sprite.height / 2))
-                    player_polygon.append((player.sprite.center_x - player.sprite.width / 2,
-                                           player.sprite.center_y - player.sprite.height / 2))
-                    if arcade.geometry.are_polygons_intersecting(player_polygon,obstacle):
-                        isIntersecting = True
+                    player_polygon = [(player.sprite.center_x - player.sprite.width / 2,  # creating "hitbox" of player
+                                       player.sprite.center_y + player.sprite.height / 2),
+                                      (player.sprite.center_x + player.sprite.width / 2,
+                                       player.sprite.center_y + player.sprite.height / 2),
+                                      (player.sprite.center_x + player.sprite.width / 2,
+                                       player.sprite.center_y - player.sprite.height / 2),
+                                      (player.sprite.center_x - player.sprite.width / 2,
+                                       player.sprite.center_y - player.sprite.height / 2)]
+                    if geometry.are_polygons_intersecting(player_polygon, obstacle):
+                        is_intersecting = True
                         break
-                if isIntersecting: continue
+                if is_intersecting:
+                    continue
                 break
             self.window.lobby.game.obstacles.append(obstacle)
 
     def time_tick(self):
-        self.window.lobby.game.time -= 1
-        time = self.window.lobby.game.time
-        if time == 0:
+        self.window.lobby.game.timer_time -= 1
+        timer_time = self.window.lobby.game.timer_time
+        if timer_time == 0:
             self.pass_turn_to_next_player()
             return
         self.timer = Timer(1, self.time_tick)
@@ -227,32 +236,32 @@ class GameView(arcade.View):
 
         # adding formula input field
         self.formula_field = AdvancedUIInputText(text='formula', font_size=int(18 * window.scale),
-                                                 text_color=arcade.color.WHITE,
+                                                 text_color=color.WHITE,
                                                  multiline=True, width=self.formula_input_width,
                                                  height=self.formula_input_height)
         self.formula_field.caret.move_to_point(4000, 0)  # moving caret to the end
         self.formula_field.layout.document.set_style(0, -1,
                                                      {"wrap": "char"})  # setting line feed to feed after every char
 
-        formula_anchor = arcade.gui.UIAnchorLayout()
+        formula_anchor = gui.UIAnchorLayout()
         formula_anchor.add(self.formula_field, anchor_x='center', anchor_y='bottom', align_y=int(60 * window.scale))
 
         # adding fire button
-        fire_button_texture = arcade.load_texture('textures/fire_button.png')
-        fire_button_texture_hovered = arcade.load_texture('textures/fire_button_hovered.png')
-        fire_button_texture_disabled = arcade.load_texture('textures/fire_button_disabled.png')
+        fire_button_texture = load_texture('textures/fire_button.png')
+        fire_button_texture_hovered = load_texture('textures/fire_button_hovered.png')
+        fire_button_texture_disabled = load_texture('textures/fire_button_disabled.png')
         fire_button_scale = 0.5 * window.scale
 
-        fire_button_texture_pressed = arcade.load_texture('textures/fire_button_pressed.png')
+        fire_button_texture_pressed = load_texture('textures/fire_button_pressed.png')
 
         fire_button = FixedUITextureButton(texture=fire_button_texture, texture_hovered=fire_button_texture_hovered,
-                                           texture_pressed=fire_button_texture_pressed, texture_disabled=
-                                           fire_button_texture_disabled, scale=fire_button_scale)
+                                           texture_pressed=fire_button_texture_pressed,
+                                           texture_disabled=fire_button_texture_disabled, scale=fire_button_scale)
         fire_button.on_click = self.fire
 
         # adding exit button
-        quit_button_texture = arcade.load_texture('textures/LobbyExitButton.png')
-        quit_button_texture_pressed = arcade.load_texture('textures/LobbyExitButton_hovered.png')
+        quit_button_texture = load_texture('textures/LobbyExitButton.png')
+        quit_button_texture_pressed = load_texture('textures/LobbyExitButton_hovered.png')
         quit_button_scale = 0.65 * window.scale
         quit_button = FixedUITextureButton(texture=quit_button_texture,
                                            width=quit_button_texture.width * quit_button_scale,
@@ -261,52 +270,54 @@ class GameView(arcade.View):
         quit_button.on_click = self.game_quit  # adding skip map checkbox(also button) and button
 
         checkbox_scale = 0.24 * window.scale
-        checkbox_pressed_texture = arcade.load_texture('textures/square_checkBox_pressed.png')
-        checkbox_empty_texture = arcade.load_texture('textures/square_checkBox_empty.png')
-        vote_button_texture = arcade.load_texture('textures/skip_vote_button.png')
-        vote_button_texture_hovered = arcade.load_texture('textures/skip_vote_button_hovered.png')
+        checkbox_pressed_texture = load_texture('textures/square_checkBox_pressed.png')
+        checkbox_empty_texture = load_texture('textures/square_checkBox_empty.png')
+        vote_button_texture = load_texture('textures/skip_vote_button.png')
+        vote_button_texture_hovered = load_texture('textures/skip_vote_button_hovered.png')
         vote_button_scale = 0.675 * window.scale
 
-        self.skip_checkbox = FixedUITextureToggle(on_texture=checkbox_pressed_texture,
-                                                 off_texture=checkbox_empty_texture,
-                                                 value=False, width=checkbox_empty_texture.width * checkbox_scale,
-                                                 height=checkbox_empty_texture.height * checkbox_scale)
-        self.vote_button = FixedUITextureButton(width=int(vote_button_texture.width * vote_button_scale),
-                                                height=int(vote_button_texture.height * vote_button_scale),
-                                                texture=vote_button_texture,
-                                                texture_hovered=vote_button_texture_hovered)
+        skip_checkbox = FixedUITextureToggle(on_texture=checkbox_pressed_texture,
+                                             off_texture=checkbox_empty_texture,
+                                             value=False, width=checkbox_empty_texture.width * checkbox_scale,
+                                             height=checkbox_empty_texture.height * checkbox_scale)
+        vote_button = FixedUITextureButton(width=int(vote_button_texture.width * vote_button_scale),
+                                           height=int(vote_button_texture.height * vote_button_scale),
+                                           texture=vote_button_texture,
+                                           texture_hovered=vote_button_texture_hovered)
 
-        @self.vote_button.event("on_click")
+        @vote_button.event("on_click")
         def vote(event):
-            self.skip_checkbox.value = not self.skip_checkbox.value
+            skip_checkbox.value = not skip_checkbox.value
 
-        ui_anchor = arcade.gui.UIAnchorLayout()
+        ui_anchor = gui.UIAnchorLayout()
         ui_anchor.add(formula_anchor)
-        ui_anchor.add(self.skip_checkbox, anchor_x='left', anchor_y='bottom',
+        ui_anchor.add(skip_checkbox, anchor_x='left', anchor_y='bottom',
                       align_x=int(30 * window.scale),
                       align_y=int(50 * window.scale + quit_button_texture.height * quit_button_scale))
-        ui_anchor.add(self.vote_button, anchor_x='left', anchor_y='bottom',
+        ui_anchor.add(vote_button, anchor_x='left', anchor_y='bottom',
                       align_x=int(45 * window.scale + checkbox_empty_texture.width * checkbox_scale),
                       align_y=int(50 * window.scale + quit_button_texture.height * quit_button_scale))
         ui_anchor.add(fire_button, anchor_x='right',
                       align_x=int(-self.window.width / 5.45 - window.width / 2 - 25 * window.scale),
                       anchor_y='bottom',
-                      align_y=int((self.panel_top_edge - fire_button_texture.height * fire_button_scale) / 2)
-                              + 10 * window.scale)
+                      align_y=int(
+                          (self.panel_top_edge - fire_button_texture.height * fire_button_scale) / 2
+                      ) + 10 * window.scale
+                      )
         ui_anchor.add(quit_button, anchor_x='left', anchor_y='bottom', align_y=int(25 * window.scale),
                       align_x=int(30 * window.scale))
         self.manager.add(ui_anchor)
 
         # adding timer Text object
-        self.time_text = arcade.Text(
-            text='{:0>2d}:{:0>2d}'.format(window.lobby.game.time // 60, window.lobby.game.time % 60),
+        self.time_text = Text(
+            text='{:0>2d}:{:0>2d}'.format(window.lobby.game.timer_time // 60, window.lobby.game.timer_time % 60),
             anchor_x='center', anchor_y='center', multiline=False, color=(128, 245, 255),
             start_x=int(window.width - 210 * window.scale), start_y=int(110 * window.scale),
             font_size=int(72 * window.scale)
         )
 
     def game_quit(self, event):
-        message_box = arcade.gui.UIMessageBox(
+        message_box = gui.UIMessageBox(
             width=400,
             height=300,
             message_text='Are you sure you wanna leave the game?',
@@ -315,7 +326,7 @@ class GameView(arcade.View):
         self.manager.add(message_box)
 
         @message_box.event("on_action")
-        def on_action(event: arcade.gui.UIOnActionEvent):
+        def on_action(event: gui.UIOnActionEvent):
             if event.action == 'Yes':
                 if self.timer:
                     self.timer.cancel()
@@ -340,13 +351,13 @@ class GameView(arcade.View):
         # stopping timer
         self.timer.cancel()
 
-        # setting all parametrs for shooting
+        # setting all parameters for shooting
         game.shooting = True
         game.formula_current_x = game.active_player.x
-        game.formula_segments = arcade.shape_list.ShapeElementList()
+        game.formula_segments = shape_list.ShapeElementList()
 
     def send_message(self, text):
-        message_box = arcade.gui.UIMessageBox(
+        message_box = gui.UIMessageBox(
             width=300,
             height=200,
             message_text=text,
@@ -370,11 +381,14 @@ class GameView(arcade.View):
 
         end = True
         for player in self.window.lobby.game.right_team:
-            if player.alive: end = False
-        if end: return True
+            if player.alive:
+                end = False
+        if end:
+            return True
         end = True
         for player in self.window.lobby.game.left_team:
-            if player.alive: end = False
+            if player.alive:
+                end = False
         return end
 
     def pass_turn_to_next_player(self):
@@ -395,7 +409,7 @@ class GameView(arcade.View):
                 game.prev_active_player = active_player
 
                 # resetting timer
-                game.time = game.max_time_s
+                game.timer_time = game.max_time_s
                 self.timer = Timer(1, self.time_tick)
                 self.timer.start()
 
@@ -420,14 +434,14 @@ class GameView(arcade.View):
         window.lobby.game.obstacles.pop(obstacle_index)  # deleting old obstacle
 
         # generating clipping polygon
-        angle_sum = 0
+        angle_angle_sum = 0
         angles = []
         vertices = 8
         for _ in range(vertices):
             angles.append(random.randint(85, 100))
-            angle_sum += angles[-1]
+            angle_angle_sum += angles[-1]
         for angle in range(vertices):
-            angles[angle] = angles[angle] / angle_sum
+            angles[angle] = angles[angle] / angle_angle_sum
 
         center_x = point[0]
         center_y = point[1]
@@ -446,7 +460,8 @@ class GameView(arcade.View):
         pc.AddPath(clipper, pyclipper.PT_CLIP, True)
         new_obstacles = pc.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
         for obstacle in new_obstacles:
-            if not obstacle: continue
+            if not obstacle:
+                continue
             window.lobby.game.obstacles.append(obstacle)
 
     def on_update(self, delta_time: float = 1 / 60):
@@ -468,7 +483,6 @@ class GameView(arcade.View):
                 x_step_px = 0.5 * window.scale  # the size of function step in px
                 x_step = x_step_px * 2 * game.x_edge / self.graph_width * (1 if game.active_player.left_player else -1)
                 point_list = []
-                y_val = 0
                 for _ in range(segments_per_tick + 1):
                     # evaluating next point coordinates
                     y_val = game.formula.evaluate(game.formula_current_x) + translation_y_delta
@@ -484,8 +498,8 @@ class GameView(arcade.View):
 
                 game.formula_current_x -= x_step
 
-                strip_line = arcade.shape_list.create_line_strip(point_list=point_list, color=arcade.color.RED,
-                                                                 line_width=1 * window.scale)
+                strip_line = shape_list.shape_list.create_line_strip(point_list=point_list, color=color.RED,
+                                                                     line_width=1 * window.scale)
                 game.formula_segments.append(strip_line)  # adding new segment
 
                 # checking collision with other players or obstacles
@@ -508,7 +522,8 @@ class GameView(arcade.View):
                     if collisions:
                         for player in game.all_players:
                             if player.sprite == collisions[0]:
-                                active_team = game.left_team if game.active_player in game.left_team else game.right_team
+                                active_team = game.left_team if game.active_player in game.left_team else \
+                                    game.right_team
                                 if player in active_team and not game.friendly_fire:
                                     return
                                 self.kill_player(player)
@@ -518,16 +533,14 @@ class GameView(arcade.View):
                     self.stop_shooting()
                     return
 
-
-            except Exception as exeption:
+            except Exception as exception:
                 self.stop_shooting()
-                if exeption == ZeroDivisionError:
-                    print('Zero dividing found! Shoot stoped!')
-                elif exeption == ArgumentOutOfRange:
-                    print('Argument error! Shoot stoped!')
+                if exception == ZeroDivisionError:
+                    print('Zero dividing found! Shoot stopped!')
+                elif exception == ArgumentOutOfRange:
+                    print('Argument error! Shoot stopped!')
                 else:
-                    print('some error occured!', exeption)
-                # TODO: добавить какую-то анимацию и сообщение о том, что именно пошло не так (скорее всего деление на 0)
+                    print('some error occurred!', exception)
 
     def stop_shooting(self):
         game = self.window.lobby.game
@@ -553,10 +566,10 @@ class GameView(arcade.View):
         self.manager.draw()
 
         # timer drawing
-        time = self.window.lobby.game.time
-        self.time_text.text = '{:0>2d}:{:0>2d}'.format(time // 60, time % 60)
+        timer_time = self.window.lobby.game.timer_time
+        self.time_text.text = '{:0>2d}:{:0>2d}'.format(timer_time // 60, timer_time % 60)
         # making timer blink red-blue on the last 15 seconds
-        self.time_text.color = (128, 245, 255) if (time > 15 or not time % 2) else (245, 10, 10)
+        self.time_text.color = (128, 245, 255) if (timer_time > 15 or not timer_time % 2) else (245, 10, 10)
         self.time_text.draw()
 
         arcade.finish_render()
@@ -567,7 +580,7 @@ class GameView(arcade.View):
         for polygon in game.obstacles:
             arcade.draw_polygon_filled(polygon, color=game.obstacles_color)
             arcade.draw_polygon_outline(polygon, color=game.obstacles_border_color)
-        print('obstacles drawed in',1000*(time.time()-start_time),'ms')
+        print('obstacles drawn in', 1000 * (time.time() - start_time), 'ms')
 
     def players_draw(self):
         self.window.lobby.game.players_sprites_list.draw()
@@ -578,7 +591,7 @@ class GameView(arcade.View):
                 player.nick.color = (212, 28, 15)
                 player.nick.bold = True
             elif not player.alive:
-                player.nick.color = arcade.color.BLACK
+                player.nick.color = color.BLACK
             else:
                 player.nick.color = (255, 255, 255)
             player.nick.draw()
@@ -611,60 +624,60 @@ class GameView(arcade.View):
 
         # adding graph field and edges:
         self.game_field_objects.append(
-            create_rectangle_filled(center_x=int((self.graph_left_edge + self.graph_right_edge) / 2),
-                                    center_y=int((self.graph_top_edge + self.graph_bottom_edge) / 2),
-                                    width=self.graph_right_edge - self.graph_left_edge,
-                                    height=self.graph_top_edge - self.graph_bottom_edge,
-                                    color=(11, 1, 18, 200)
-                                    )
+            shape_list.create_rectangle_filled(center_x=int((self.graph_left_edge + self.graph_right_edge) / 2),
+                                               center_y=int((self.graph_top_edge + self.graph_bottom_edge) / 2),
+                                               width=self.graph_right_edge - self.graph_left_edge,
+                                               height=self.graph_top_edge - self.graph_bottom_edge,
+                                               color=(11, 1, 18, 200)
+                                               )
         )
         self.game_field_objects.append(
-            create_rectangle_outline(
+            shape_list.create_rectangle_outline(
                 center_x=int((self.graph_left_edge + self.graph_right_edge) / 2),
                 center_y=int((self.graph_top_edge + self.graph_bottom_edge) / 2),
                 width=self.graph_right_edge - self.graph_left_edge + 3,
                 height=self.graph_top_edge - self.graph_bottom_edge + 3,
-                color=arcade.color.AERO_BLUE, border_width=3
+                color=color.AERO_BLUE, border_width=3
             )
         )
 
         # adding vertical arrow
         self.game_field_objects.append(
-            create_line(
+            shape_list.create_line(
                 start_x=self.graph_x_center, start_y=self.graph_bottom_edge, end_x=self.graph_x_center,
                 end_y=self.graph_top_edge, color=arcade.types.Color.from_hex_string(graph_lines_color_hex)
             )
         )
         self.game_field_objects.append(
-            create_line(
+            shape_list.create_line(
                 start_x=self.graph_x_center - 7, start_y=self.graph_top_edge - 10, end_x=self.graph_x_center,
                 end_y=self.graph_top_edge, color=arcade.types.Color.from_hex_string(graph_lines_color_hex),
                 line_width=1
             )
         )
         self.game_field_objects.append(
-            create_line(
+            shape_list.create_line(
                 start_x=self.graph_x_center + 7, start_y=self.graph_top_edge - 10, end_x=self.graph_x_center,
                 end_y=self.graph_top_edge, color=arcade.types.Color.from_hex_string(graph_lines_color_hex),
                 line_width=1
             )
         )
 
-        # adding horizotal arrow
+        # adding horizontal arrow
         self.game_field_objects.append(
-            create_line(
+            shape_list.create_line(
                 start_x=self.graph_left_edge, start_y=self.graph_y_center, end_x=self.graph_right_edge,
                 end_y=self.graph_y_center, color=arcade.types.Color.from_hex_string(graph_lines_color_hex)
             )
         )
         self.game_field_objects.append(
-            create_line(
+            shape_list.create_line(
                 start_x=self.graph_right_edge - 10, start_y=self.graph_y_center + 7, end_x=self.graph_right_edge,
                 end_y=self.graph_y_center, color=arcade.types.Color.from_hex_string(graph_lines_color_hex)
             )
         )
         self.game_field_objects.append(
-            create_line(
+            shape_list.create_line(
                 start_x=self.graph_right_edge + 10, start_y=self.graph_y_center - 7, end_x=self.graph_right_edge,
                 end_y=self.graph_y_center, color=arcade.types.Color.from_hex_string(graph_lines_color_hex)
             )
@@ -677,11 +690,11 @@ class GameView(arcade.View):
 
         marks_frequency = game.marks_frequency
         if game.axes_marked:
-            if marks_frequency >= int(max_x_value - x_delta) + 1:  # if no marks will be drawed on x-axis
+            if marks_frequency >= int(max_x_value - x_delta) + 1:  # if no marks will be drawn on x-axis
                 last_x = x_mark = max_x_value - x_delta
                 x_coordinate = self.graph_width / 2 / max_x_value * x_mark + self.graph_x_center
                 self.game_field_objects.append(
-                    create_line(
+                    shape_list.create_line(
                         start_x=x_coordinate, start_y=self.graph_y_center - 6,
                         end_x=x_coordinate, end_y=self.graph_y_center + 6,
                         color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -689,7 +702,7 @@ class GameView(arcade.View):
                 )
                 x_coordinate = self.graph_x_center - self.graph_width / 2 / max_x_value * x_mark
                 self.game_field_objects.append(
-                    create_line(
+                    shape_list.create_line(
                         start_x=x_coordinate, start_y=self.graph_y_center - 6,
                         end_x=x_coordinate, end_y=self.graph_y_center + 6,
                         color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -700,7 +713,7 @@ class GameView(arcade.View):
                     last_x = x_mark
                     x_coordinate = self.graph_width / 2 / max_x_value * x_mark + self.graph_x_center
                     self.game_field_objects.append(
-                        create_line(
+                        shape_list.create_line(
                             start_x=x_coordinate, start_y=self.graph_y_center - 6,
                             end_x=x_coordinate, end_y=self.graph_y_center + 6,
                             color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -708,7 +721,7 @@ class GameView(arcade.View):
                     )
                     x_coordinate = self.graph_x_center - self.graph_width / 2 / max_x_value * x_mark
                     self.game_field_objects.append(
-                        create_line(
+                        shape_list.create_line(
                             start_x=x_coordinate, start_y=self.graph_y_center - 6,
                             end_x=x_coordinate, end_y=self.graph_y_center + 6,
                             color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -722,7 +735,7 @@ class GameView(arcade.View):
                 last_y = y_mark = int(max_y_value - y_delta)
                 y_coordinate = self.graph_height / 2 / max_y_value * y_mark + self.graph_y_center
                 self.game_field_objects.append(
-                    create_line(
+                    shape_list.create_line(
                         start_x=self.graph_x_center - 6, start_y=y_coordinate,
                         end_x=self.graph_x_center + 6, end_y=y_coordinate,
                         color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -730,21 +743,21 @@ class GameView(arcade.View):
                 )
                 y_coordinate = self.graph_y_center - self.graph_height / 2 / max_y_value * y_mark
                 self.game_field_objects.append(
-                    create_line(
+                    shape_list.create_line(
                         start_x=self.graph_x_center - 6, start_y=y_coordinate,
                         end_x=self.graph_x_center + 6, end_y=y_coordinate,
                         color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
                     )
                 )
             else:
-                for y_mark in np.arange(marks_frequency,
-                                        (1 + int(max_y_value) if (max_y_value - int(max_y_value) < y_delta) else
-                                        int(max_y_value - y_delta)),
-                                        marks_frequency):
+                for y_mark in \
+                        np.arange(marks_frequency,
+                                  (1 + int(max_y_value) if (max_y_value - int(max_y_value) < y_delta) else
+                                  int(max_y_value - y_delta)), marks_frequency):
                     last_y = y_mark
                     y_coordinate = self.graph_height / 2 / max_y_value * y_mark + self.graph_y_center
                     self.game_field_objects.append(
-                        create_line(
+                        shape_list.create_line(
                             start_x=self.graph_x_center - 6, start_y=y_coordinate,
                             end_x=self.graph_x_center + 6, end_y=y_coordinate,
                             color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -752,7 +765,7 @@ class GameView(arcade.View):
                     )
                     y_coordinate = self.graph_y_center - self.graph_height / 2 / max_y_value * y_mark
                     self.game_field_objects.append(
-                        create_line(
+                        shape_list.create_line(
                             start_x=self.graph_x_center - 6, start_y=y_coordinate,
                             end_x=self.graph_x_center + 6, end_y=y_coordinate,
                             color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -767,7 +780,7 @@ class GameView(arcade.View):
             # x marks
             x_coordinate = self.graph_width / 2 / max_x_value * x_mark + self.graph_x_center
             self.game_field_objects.append(
-                create_line(
+                shape_list.create_line(
                     start_x=x_coordinate, start_y=self.graph_y_center - 6,
                     end_x=x_coordinate, end_y=self.graph_y_center + 6,
                     color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -775,7 +788,7 @@ class GameView(arcade.View):
             )
             x_coordinate = self.graph_x_center - self.graph_width / 2 / max_x_value * x_mark
             self.game_field_objects.append(
-                create_line(
+                shape_list.create_line(
                     start_x=x_coordinate, start_y=self.graph_y_center - 6,
                     end_x=x_coordinate, end_y=self.graph_y_center + 6,
                     color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -786,7 +799,7 @@ class GameView(arcade.View):
             last_y = y_mark
             y_coordinate = self.graph_height / 2 / max_y_value * y_mark + self.graph_y_center
             self.game_field_objects.append(
-                create_line(
+                shape_list.create_line(
                     start_x=self.graph_x_center - 6, start_y=y_coordinate,
                     end_x=self.graph_x_center + 6, end_y=y_coordinate,
                     color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -794,7 +807,7 @@ class GameView(arcade.View):
             )
             y_coordinate = self.graph_y_center - self.graph_height / 2 / max_y_value * y_mark
             self.game_field_objects.append(
-                create_line(
+                shape_list.create_line(
                     start_x=self.graph_x_center - 6, start_y=y_coordinate,
                     end_x=self.graph_x_center + 6, end_y=y_coordinate,
                     color=arcade.types.Color.from_hex_string(graph_lines_color_hex), line_width=2
@@ -805,31 +818,31 @@ class GameView(arcade.View):
         x_coordinate = self.graph_width / 2 / max_x_value * last_x + self.graph_x_center
         if self.graph_right_edge - x_coordinate < 15 * window.scale:
             x_coordinate = self.graph_right_edge - 15 * window.scale
-        self.text_to_draw.append(arcade.Text(str(int(last_x)), x_coordinate, self.graph_y_center - 8 * window.scale,
-                                             arcade.types.Color.from_hex_string(graph_lines_color_hex),
-                                             font_size=12 * window.scale,
-                                             anchor_x='center', anchor_y='top'))
+        self.text_to_draw.append(Text(str(int(last_x)), x_coordinate, self.graph_y_center - 8 * window.scale,
+                                      arcade.types.Color.from_hex_string(graph_lines_color_hex),
+                                      font_size=12 * window.scale,
+                                      anchor_x='center', anchor_y='top'))
         x_coordinate = self.graph_x_center - self.graph_width / 2 / max_x_value * last_x
         if x_coordinate - self.graph_left_edge < 15 * window.scale:
             x_coordinate = self.graph_left_edge + 15 * window.scale
-        self.text_to_draw.append(arcade.Text(str(-int(last_x)), x_coordinate, self.graph_y_center - 8 * window.scale,
-                                             arcade.types.Color.from_hex_string(graph_lines_color_hex),
-                                             font_size=12 * window.scale,
-                                             anchor_x='center', anchor_y='top'))
+        self.text_to_draw.append(Text(str(-int(last_x)), x_coordinate, self.graph_y_center - 8 * window.scale,
+                                      arcade.types.Color.from_hex_string(graph_lines_color_hex),
+                                      font_size=12 * window.scale,
+                                      anchor_x='center', anchor_y='top'))
         y_coordinate = self.graph_height / 2 / max_y_value * last_y + self.graph_y_center
         if self.graph_top_edge - y_coordinate < 8 * window.scale:
             y_coordinate = self.graph_top_edge - 8 * window.scale
-        self.text_to_draw.append(arcade.Text(str(int(last_y)), self.graph_x_center - 8 * window.scale, y_coordinate,
-                                             arcade.types.Color.from_hex_string(graph_lines_color_hex),
-                                             font_size=12 * window.scale,
-                                             anchor_y='center', anchor_x='right'))
+        self.text_to_draw.append(Text(str(int(last_y)), self.graph_x_center - 8 * window.scale, y_coordinate,
+                                      arcade.types.Color.from_hex_string(graph_lines_color_hex),
+                                      font_size=12 * window.scale,
+                                      anchor_y='center', anchor_x='right'))
         y_coordinate = self.graph_y_center - self.graph_height / 2 / max_y_value * last_y
         if y_coordinate - self.graph_bottom_edge < 8 * window.scale:
             y_coordinate = self.graph_bottom_edge + 8 * window.scale
-        self.text_to_draw.append(arcade.Text(str(-int(last_y)), self.graph_x_center - 8 * window.scale, y_coordinate,
-                                             arcade.types.Color.from_hex_string(graph_lines_color_hex),
-                                             font_size=12 * window.scale,
-                                             anchor_y='center', anchor_x='right'))
+        self.text_to_draw.append(Text(str(-int(last_y)), self.graph_x_center - 8 * window.scale, y_coordinate,
+                                      arcade.types.Color.from_hex_string(graph_lines_color_hex),
+                                      font_size=12 * window.scale,
+                                      anchor_y='center', anchor_x='right'))
 
         # drawing for the first time, when added all elements
         self.game_field_objects.draw()
