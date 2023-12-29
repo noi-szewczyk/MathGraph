@@ -34,8 +34,8 @@ but anyway I recommend  not to use caps.
 
 You shouldn't type 'y=' or anything other than numbers, listed operators, functions or constants.
 
-Two types of numbers supported: 
-integer and floating-point (divided using '.')
+Two types of numbers are supported: 
+integer and floating-point (divided via '.')
 no complex numbers or anything else!
 
 All operators have the same precedence as in math :
