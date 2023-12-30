@@ -14,6 +14,7 @@ See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with MathGraph.
 If not, see <https://www.gnu.org/licenses/>.
 """
+import time
 
 from arcade import View, gui, load_texture
 from UIFixedElements import *
@@ -84,12 +85,6 @@ class MenuView(View):
         user = self.window.client
         user_player = Player(False, user)  # immediately creating user player
         self.window.lobby = Lobby(user_player)
-        bot1 = Player()
-        bot1.client.name = 'Albert Einstein'
-        self.window.lobby.team2.append(bot1)
-        bot2 = Player()
-        bot2.client.name = 'Cesarz'
-        self.window.lobby.team2.append(bot2)
 
         # showing lobby view
         from lobby import LobbyView
