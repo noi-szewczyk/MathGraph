@@ -1,4 +1,5 @@
 import random
+import time
 
 import arcade
 
@@ -6,8 +7,12 @@ from client import Client
 
 
 class Player:
+    texture_left, texture_right = arcade.load_texture_pair('textures/player_sprite.png')
+    texture_left_dead, texture_right_dead = arcade.load_texture_pair('textures/player_sprite_dead.png')
 
-    def __init__(self, computer_player: bool = True, client : Client = None, left_player=True,name : str = None):
+    def __init__(self, computer_player: bool = True, client: Client = None, left_player=True, name: str = None):
+        self.sprite = None
+        self.nick = None
         self.alive = True
         self.computer_player = computer_player
         self.left_player = left_player
@@ -16,17 +21,15 @@ class Player:
             self.client = client
         else:
             self.client = Client()
-            if name: self.client.name=name
+            if name:
+                self.client.name = name
         # graphic coordinates of player
         self.x = None
         self.y = None
 
     def create_sprite(self, window):
         """this method must be called after creation of the game to create the sprite,
-        bc it's cordinates depends on game parameters"""
-
-        self.texture_left, self.texture_right = arcade.load_texture_pair('textures/player_sprite.png')
-        self.texture_left_dead, self.texture_right_dead = arcade.load_texture_pair('textures/player_sprite_dead.png')
+        bc it's coordinates depends on game parameters"""
 
         GRAPH_TOP_EDGE = window.GRAPH_TOP_EDGE
         GRAPH_BOTTOM_EDGE = window.GRAPH_BOTTOM_EDGE
@@ -61,6 +64,6 @@ class Player:
         window.lobby.game.players_sprites_list.initialize()  # to avoid lags during first drawing
 
         # adding nick text object only once here
-        self.nick  = arcade.Text(self.client.name, start_x=self.sprite.center_x
-                                           , start_y=self.sprite.bottom, anchor_y='top', anchor_x='center',
-                                           font_size=14 * window.scale, color=arcade.color.WHITE)
+        self.nick = arcade.Text(self.client.name, start_x=self.sprite.center_x,
+                                start_y=self.sprite.bottom, anchor_y='top', anchor_x='center',
+                                font_size=int(14 * window.scale), color=arcade.color.WHITE)
