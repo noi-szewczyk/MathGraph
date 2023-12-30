@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License along with Mat
 If not, see <https://www.gnu.org/licenses/>.
 """
 import random
+import time
 
 from player import Player
 from arcade import View, Window, gui, load_texture
@@ -63,7 +64,6 @@ class LobbyView(View):
         self.temp_buttons_manager.disable()  # for little close buttons, which can appear and disappear
 
     def add_ui(self):
-
         bottom_button_scale = 0.75
 
         play_button_texture = load_texture('textures/LobbyPlayButton.png')
@@ -99,7 +99,7 @@ class LobbyView(View):
         add_bot_button.on_click = self.bot_add
 
         right_v_box = gui.UIBoxLayout(vertical=False, children=[add_bot_button, play_button, exit_button],
-                                             space_between=int(75 * self.window.scale))
+                                      space_between=int(75 * self.window.scale))
 
         right_anchor = gui.UIAnchorLayout()
         right_anchor.add(right_v_box, anchor_x='right', anchor_y='bottom', align_x=int(-315 * self.window.scale),
@@ -159,9 +159,9 @@ class LobbyView(View):
                                     - checkbox_empty_texture.height * checkbox_scale / 2)))
 
         self.is_axes_marked_box = FixedUITextureToggle(width=int(checkbox_empty_texture.width * checkbox_scale),
-                                                      height=int(checkbox_empty_texture.height * checkbox_scale),
-                                                      on_texture=checkbox_pressed_texture,
-                                                      off_texture=checkbox_empty_texture)
+                                                       height=int(checkbox_empty_texture.height * checkbox_scale),
+                                                       on_texture=checkbox_pressed_texture,
+                                                       off_texture=checkbox_empty_texture)
         self.is_axes_marked_box.value = lobby.game.axes_marked
         ui_anchor.add(self.is_axes_marked_box, anchor_x='right', anchor_y='top', align_y=-int(
             0.25 * setting_box_texture.height * setting_box_scale),
@@ -169,15 +169,15 @@ class LobbyView(View):
                                    - 50 * self.window.scale - checkbox_empty_texture.width * checkbox_scale))
 
         self.is_friendly_fire_box = FixedUITextureToggle(width=int(checkbox_empty_texture.width * checkbox_scale),
-                                                        height=int(checkbox_empty_texture.height * checkbox_scale),
-                                                        on_texture=checkbox_pressed_texture,
-                                                        off_texture=checkbox_empty_texture)
+                                                         height=int(checkbox_empty_texture.height * checkbox_scale),
+                                                         on_texture=checkbox_pressed_texture,
+                                                         off_texture=checkbox_empty_texture)
         self.is_friendly_fire_box.value = game.friendly_fire
-        ui_anchor.add(self.is_friendly_fire_box, anchor_x='right', anchor_y='top', align_x=
-        -int(setting_box_texture.width * setting_box_scale
-             - 50 * self.window.scale - checkbox_empty_texture.width * checkbox_scale),
-                      align_y=-int(0.25 * setting_box_texture.height * setting_box_scale) -
-                              1 * int(checkbox_empty_texture.height * checkbox_scale) - 1 * checkbox_vertical_offset)
+        ui_anchor.add(self.is_friendly_fire_box, anchor_x='right', anchor_y='top',
+                      align_x=-int(setting_box_texture.width * setting_box_scale - 50 * self.window.scale
+                                   - checkbox_empty_texture.width * checkbox_scale),
+                      align_y=-int(0.25 * setting_box_texture.height * setting_box_scale)
+                              - 1 * int(checkbox_empty_texture.height * checkbox_scale) - 1 * checkbox_vertical_offset)
 
         self.objects_to_draw.append(
             arcade.Text(text='Friendly fire allow', font_size=checkbox_font_size, font_name=checkbox_font,
@@ -226,8 +226,8 @@ class LobbyView(View):
                             checkbox_empty_texture.height * checkbox_scale) - 1.8 * checkbox_vertical_offset)))
 
         self.y_limit_slider = gui.UISlider(value=game.y_edge, min_value=0,
-                                                  max_value=100, width=slider_width,
-                                                  height=slider_height, style=slider_style)
+                                           max_value=100, width=slider_width,
+                                           height=slider_height, style=slider_style)
         ui_anchor.add(self.y_limit_slider, anchor_y='top', anchor_x='left',
                       align_x=self.window.width - int(setting_box_texture.width * setting_box_scale
                                                       - 50 * self.window.scale),
@@ -236,14 +236,14 @@ class LobbyView(View):
                               1.5 * int(checkbox_empty_texture.height * checkbox_scale)
                               - 2.3 * checkbox_vertical_offset - int(checkbox_font_size))
         self.y_edge_text = arcade.Text(anchor_y='top', anchor_x='left',
-                                       start_x=self.window.width - int(setting_box_texture.width * setting_box_scale
-                                                                       - 50 * self.window.scale) + int(
-                                           175 * self.window.scale),
+                                       start_x=self.window.width
+                                               - int(setting_box_texture.width * setting_box_scale
+                                                     - 50 * self.window.scale) + int(175 * self.window.scale),
                                        start_y=int(
                                            self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
                                            - checkbox_empty_texture.height * checkbox_scale / 2 -
-                                           1.5 * int(
-                                               checkbox_empty_texture.height * checkbox_scale) - 1.8 * checkbox_vertical_offset),
+                                           1.5 * int(checkbox_empty_texture.height * checkbox_scale)
+                                           - 1.8 * checkbox_vertical_offset),
                                        text=str(int(game.y_edge)), font_name=checkbox_font,
                                        font_size=checkbox_font_size)
         self.objects_to_draw.append(self.y_edge_text)
@@ -267,8 +267,8 @@ class LobbyView(View):
                                     - 2 * checkbox_vertical_offset)))
 
         self.width_slider = gui.UISlider(value=100, min_value=0,
-                                                max_value=100, width=slider_width,
-                                                height=slider_height, style=slider_style)
+                                         max_value=100, width=slider_width,
+                                         height=slider_height, style=slider_style)
 
         @self.width_slider.event("on_change")
         def change(event):
@@ -331,8 +331,8 @@ class LobbyView(View):
                                     - checkbox_empty_texture.height * checkbox_scale / 2)))
 
         self.marks_frequency_slider = gui.UISlider(value=(game.marks_frequency - 1) / 49 * 100, min_value=0,
-                                                          max_value=100, width=slider_width,
-                                                          height=slider_height, style=slider_style)
+                                                   max_value=100, width=slider_width,
+                                                   height=slider_height, style=slider_style)
 
         @self.marks_frequency_slider.event("on_change")
         def change(event):
@@ -379,8 +379,8 @@ class LobbyView(View):
         self.objects_to_draw.append(self.time_limit_text)
 
         self.time_limit_slider = gui.UISlider(value=int((game.max_time_s - 30) / 120 * 100), min_value=0,
-                                                     max_value=100, width=slider_width,
-                                                     height=slider_height, style=slider_style)
+                                              max_value=100, width=slider_width,
+                                              height=slider_height, style=slider_style)
 
         @self.time_limit_slider.event("on_change")
         def change(event):
@@ -400,35 +400,39 @@ class LobbyView(View):
         self.obstacle_frequency = arcade.Text(
             'obstacle frequency:', anchor_x='left', anchor_y='top',
             start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
-                                                - 420 * self.window.scale - checkbox_empty_texture.width * checkbox_scale),
+                                                - 420 * self.window.scale
+                                                - checkbox_empty_texture.width * checkbox_scale),
             start_y=int(self.window.height + (- 0.25 * setting_box_texture.height * setting_box_scale
-                                  - 1.5 * checkbox_empty_texture.height * checkbox_scale
-                                  - checkbox_font_size - 0.5 * checkbox_vertical_offset - self.time_limit_slider.height)
-                        ),font_size=checkbox_font_size, font_name=checkbox_font, color=checkbox_color
+                                              - 1.5 * checkbox_empty_texture.height * checkbox_scale
+                                              - checkbox_font_size - 0.5 * checkbox_vertical_offset
+                                              - int(30 * self.window.scale))
+                        ), font_size=checkbox_font_size, font_name=checkbox_font, color=checkbox_color
         )
         self.objects_to_draw.append(self.obstacle_frequency)
+
         self.obstacle_frequency_value = arcade.Text(
             str(game.obstacle_frequency), anchor_x='left', anchor_y='top',
             start_x=self.window.width - int(setting_box_texture.width * setting_box_scale
-                                               - 680 * self.window.scale - checkbox_empty_texture.width
-                                               * checkbox_scale),
+                                            - 680 * self.window.scale - checkbox_empty_texture.width
+                                            * checkbox_scale),
             start_y=int(self.window.height + (- 0.25 * setting_box_texture.height * setting_box_scale
-                                  - 1.5 * checkbox_empty_texture.height * checkbox_scale
-                                  - checkbox_font_size - 0.5 * checkbox_vertical_offset - slider_height)
-                        ),font_size=checkbox_font_size, font_name=checkbox_font, color=(255,255,255)
+                                              - 1.5 * checkbox_empty_texture.height * checkbox_scale
+                                              - checkbox_font_size - 0.5 * checkbox_vertical_offset - slider_height)
+                        ), font_size=checkbox_font_size, font_name=checkbox_font, color=(255, 255, 255)
         )
         self.objects_to_draw.append(self.obstacle_frequency_value)
 
         self.obstacle_frequency_slider = gui.UISlider(
-            value=int(game.obstacle_frequency),min_value=0,max_value=100,width=slider_width,
-            height=slider_height,style=slider_style
+            value=int(game.obstacle_frequency), min_value=0, max_value=100, width=slider_width,
+            height=slider_height, style=slider_style
         )
 
         @self.obstacle_frequency_slider.event("on_change")
         def change(event):
             game.obstacle_frequency = int(self.obstacle_frequency_slider.value)
             self.obstacle_frequency_value.text = str(game.obstacle_frequency)
-        ui_anchor.add(self.obstacle_frequency_slider,anchor_y='top', anchor_x='left',
+
+        ui_anchor.add(self.obstacle_frequency_slider, anchor_y='top', anchor_x='left',
                       align_x=self.window.width - int(setting_box_texture.width * setting_box_scale
                                                       - 420 * self.window.scale - checkbox_empty_texture.width
                                                       * checkbox_scale),
@@ -514,7 +518,7 @@ class LobbyView(View):
 
             # center x avatar coordinate
             x_pos = int(avatar_width * (len(team) - 1) / 2 + (
-                    len(team) - 1) / 2 * space_between_avatars + \
+                    len(team) - 1) / 2 * space_between_avatars +
                         team_position[0] - team.index(player) * (avatar_width + space_between_avatars))
 
             # adding avatar sprite
@@ -560,12 +564,14 @@ class LobbyView(View):
             swap_button.on_click = swap_func.swap
             self.temp_buttons_manager.add(swap_button)
 
+
     def players_draw(self):
         for client in self.clients_sprites:
             client.draw()
             client.draw_hit_box(color=(255, 255, 255))
         for name in self.client_names: name.draw()
         self.temp_buttons_manager.draw()
+
 
 class QuitFunction:
 
@@ -601,4 +607,3 @@ class SwapFunction:
             self.lobby.team2.remove(self.player)
             self.lobby.team1.append(self.player)
         self.view.clients_sprites_refresh()  # creating new sprites with new buttons
-
