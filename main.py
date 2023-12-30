@@ -17,16 +17,20 @@ If not, see <https://www.gnu.org/licenses/>.
 
 import json
 import os.path
+import string
+import time
 
 import arcade
 import pyglet.image
 from pyglet.window import ImageMouseCursor
+from arcade import Window, get_screens, get_display_size, load_texture
 
+from UIFixedElements import FixedUITextureToggle, FixedUITextureButton, AdvancedUIInputText
 from client import Client
 from menu import MenuView
 
 
-def game_configure(window: arcade.Window):
+def game_configure(window: Window):
     """loading parameters from json configure file"""
     with open('config.json', 'r', encoding='utf-8') as file:
         config = json.load(file)
@@ -45,9 +49,9 @@ def game_configure(window: arcade.Window):
     window.GRAPH_LINES_COLOR_HEX = config['GRAPH_LINES_COLOR_HEX']
 
     if window.FULLSCREEN_MODE:
-        if window.SELECTED_MONITOR > len(arcade.get_screens()):
+        if window.SELECTED_MONITOR > len(get_screens()):
             window.SELECTED_MONITOR = 1
-        window.SCREEN_WIDTH, window.SCREEN_HEIGHT = arcade.get_display_size(window.SELECTED_MONITOR - 1)
+        window.SCREEN_WIDTH, window.SCREEN_HEIGHT = get_display_size(window.SELECTED_MONITOR - 1)
 
         window.GRAPH_TOP_EDGE = window.SCREEN_HEIGHT - config['GRAPH_TOP_EDGE_OFFSET']
         window.GRAPH_BOTTOM_EDGE = window.SCREEN_HEIGHT / 4
@@ -55,7 +59,7 @@ def game_configure(window: arcade.Window):
         window.width = window.SCREEN_WIDTH
         window.title = 'MathGraph'
         window.height = window.SCREEN_HEIGHT
-        window.set_fullscreen(True, arcade.get_screens()[window.SELECTED_MONITOR - 1])
+        window.set_fullscreen(True, get_screens()[window.SELECTED_MONITOR - 1])
     else:
         window.width = window.SCREEN_WIDTH
         window.title = 'MathGraph'
@@ -69,9 +73,81 @@ def game_configure(window: arcade.Window):
     window.client = Client()
     window.client.name = config['client_name']
     try:
-        window.client.avatar = arcade.load_texture(config['client_avatar'])
+        window.client.avatar = load_texture(config['client_avatar'])
     except FileNotFoundError:  # load standard file if specified avatar image file is missing
-        window.client.avatar = arcade.load_texture('textures/default_avatar.jpg')
+        window.client.avatar = load_texture('textures/default_avatar.jpg')
+
+
+def preload_textures():
+    arcade.load_texture('textures/user_avatar.jpg')
+    arcade.load_texture('textures/default_avatar.jpg')
+    arcade.load_texture('textures/GameBackground_4k.jpg')
+    arcade.load_texture('textures/bottom_panel_4k.jpg')
+    arcade.load_texture('textures/MainMenuBackgroundLogo.png')
+    arcade.load_texture('textures/Settings_button_2048.png')
+    arcade.load_texture('textures/Lobby_BG_4k.jpg')
+    arcade.load_texture_pair('textures/player_sprite.png')
+    arcade.load_texture_pair('textures/player_sprite_dead.png')
+    arcade.load_texture('textures/fire_button.png')
+    arcade.load_texture('textures/fire_button_hovered.png')
+    arcade.load_texture('textures/fire_button_disabled.png')
+    arcade.load_texture('textures/fire_button_pressed.png')
+    arcade.load_texture('textures/LobbyExitButton.png')
+    arcade.load_texture('textures/LobbyExitButton_hovered.png')
+    arcade.load_texture('textures/square_checkBox_pressed.png')
+    arcade.load_texture('textures/square_checkBox_empty.png')
+    arcade.load_texture('textures/skip_vote_button.png')
+    arcade.load_texture('textures/skip_vote_button_hovered.png')
+    load_texture('textures/LobbyPlayButton.png')
+    load_texture('textures/LobbyPlayButton_hovered.png')
+    load_texture('textures/LobbyAddBotButton.png')
+    load_texture('textures/LobbyAddBotButton_hovered.png')
+    load_texture('textures/LobbySettingsBox.png')
+    load_texture('textures/CheckBoxBlue_empty.png')
+    load_texture('textures/CheckBoxBlue_pressed.png')
+
+
+def preload_texts(window):
+
+    arcade.draw_text(string.ascii_letters, 0, 0)  # force font init (fixes lag on first text draw)
+    arcade.draw_text(string.ascii_letters, 0, 0, font_size=int(14 * window.scale))
+    arcade.draw_text(string.ascii_letters, 0, 0, font_size=int(72 * window.scale), multiline=False, color=(128, 245, 255))
+    arcade.draw_text(string.ascii_letters, 0, 0, font_name='Arial')
+
+
+def preload_UI(window):
+    checkbox_scale = 0.25 * window.scale
+    checkbox_empty_texture = load_texture('textures/CheckBoxBlue_empty.png')
+    checkbox_pressed_texture = load_texture('textures/CheckBoxBlue_pressed.png')
+    vote_button_texture = load_texture('textures/skip_vote_button.png')
+    vote_button_texture_hovered = load_texture('textures/skip_vote_button_hovered.png')
+    vote_button_scale = 0.675 * window.scale
+    FixedUITextureToggle(on_texture=checkbox_pressed_texture,
+                         off_texture=checkbox_empty_texture,
+                         value=False, width=checkbox_empty_texture.width * checkbox_scale,
+                         height=checkbox_empty_texture.height * checkbox_scale)
+    FixedUITextureButton(width=int(vote_button_texture.width * vote_button_scale),
+                         height=int(vote_button_texture.height * vote_button_scale),
+                         texture=vote_button_texture,
+                         texture_hovered=vote_button_texture_hovered)
+    formula_input_height = int(window.GRAPH_BOTTOM_EDGE - 5 - 95 * window.scale)
+    formula_input_width = window.SCREEN_WIDTH / 2.88
+    AdvancedUIInputText(text='formula', font_size=int(18 * window.scale),
+                        text_color=(255,255,255),
+                        multiline=True, width=formula_input_width,
+                        height=formula_input_height)
+
+    close_texture = load_texture('textures/avatar_close_32px.png')
+    close_texture_hovered = load_texture('textures/avatar_close_32px_hovered.png')
+    swap_button_texture = load_texture('textures/team_swap_32px.png')
+
+    FixedUITextureButton(texture=close_texture,
+                         width=int(32 * window.scale),
+                         height=int(32 * window.scale),
+                         texture_hovered=close_texture_hovered)
+    FixedUITextureButton(texture=swap_button_texture,
+                         width=int(32 * window.scale),
+                         height=int(32 * window.scale))
 
 
 def main():
@@ -93,10 +169,15 @@ def main():
         with open('config.json', 'w') as file:
             json.dump(config, file, indent=4)
 
-    math_graph = arcade.Window(antialiasing=True, vsync=True)
+    math_graph = Window(antialiasing=True, vsync=True)
     game_configure(math_graph)
     menu_view = MenuView(math_graph)
     math_graph.show_view(menu_view)
+
+    preload_textures()  # caching textures before run
+    preload_texts(math_graph)  # glyphs building
+    preload_UI(math_graph)  # caching UI elements
+
     math_graph.run()
 
 
