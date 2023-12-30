@@ -241,9 +241,6 @@ class GameView(View):
         buttons, input for the formula and other"""
         window = self.window
 
-        print('='*100)
-        print()
-        start_time = time.time()
         # adding formula input field
         self.formula_field = AdvancedUIInputText(text='formula', font_size=int(18 * window.scale),
                                                  text_color=color.WHITE,
