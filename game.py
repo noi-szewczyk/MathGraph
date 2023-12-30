@@ -20,9 +20,11 @@ import time
 from threading import Timer
 from typing import Tuple
 
+import pyglet.graphics
+
 from UIFixedElements import *
 from arcade import shape_list
-from arcade import gui, geometry, color, load_texture, Text, SpriteList, View, Window
+from arcade import gui, geometry, color, load_texture, Text, SpriteList, View, Window, earclip
 import arcade.types
 from formula import Formula, TranslateError, ArgumentOutOfRange
 from player import Player
@@ -35,6 +37,7 @@ class Game:
     def __init__(self, left_team: list = [], right_team: list = [], multiplayer: bool = False, axes_marked: bool = True,
                  marks_frequency: int = 5, proportion_x2y: float = 2.383,
                  y_edge: int = 16, friendly_fire_enable: bool = True, max_time_s: int = 150):
+
         self.multiplayer = multiplayer
         self.proportion_x2y_max = 2.383
         self.friendly_fire = friendly_fire_enable
@@ -80,8 +83,8 @@ class Game:
         # choosing obstacles color
         self.obstacles_color = random.choice(
             [(207, 14, 136), (37, 252, 13), (183, 16, 230), (255, 251, 10), (0, 255, 183)])
-        self.obstacles_border_color = self.obstacles_color + (150,)
         self.obstacles_color += (60,)
+        self.obstacles_border_color = self.obstacles_color + (150,)
 
         # randomly choosing active player
         self.active_player = random.choice(self.all_players)
@@ -97,12 +100,14 @@ class Game:
 
 class GameView(View):
 
+    background = load_texture('textures/GameBackground_4k.jpg')
+    panel_texture = load_texture('textures/bottom_panel_4k.jpg')
+
     def __init__(self, window: Window):
         super().__init__(window)
 
-        self.background = load_texture('textures/GameBackground_4k.jpg')
-        self.panel_texture = load_texture('textures/bottom_panel_4k.jpg')
-
+        self.obstacles_batch: pyglet.graphics.Batch() = None
+        self.obstacle_batch_shapes = None
         self.formula_field: AdvancedUIInputText = None
         self.time_text: Text = None
         self.game_field_objects = shape_list.ShapeElementList()  # shape_list to contain all static elements
@@ -142,8 +147,10 @@ class GameView(View):
         self.manager = gui.UIManager()  # for all gui elements
         self.add_ui()
 
+
         # generating obstacles
         self.create_obstacles()
+        self.obstacles_update_batch()
 
         # adding thread to timer func
         window.lobby.game.timer_time = window.lobby.game.max_time_s
@@ -153,7 +160,7 @@ class GameView(View):
     def create_obstacles(self):
         """This method generates obstacles for current game
         (now only locally) """
-        print('Creating obstacles')
+
         game = self.window.lobby.game
         max_polygons = int(game.obstacle_frequency * 0.8 * game.proportion_x2y / game.proportion_x2y_max)
         for i in range(
@@ -234,6 +241,9 @@ class GameView(View):
         buttons, input for the formula and other"""
         window = self.window
 
+        print('='*100)
+        print()
+        start_time = time.time()
         # adding formula input field
         self.formula_field = AdvancedUIInputText(text='formula', font_size=int(18 * window.scale),
                                                  text_color=color.WHITE,
@@ -427,6 +437,7 @@ class GameView(View):
         it's a miracle that it works. Pls, don't touch the part with pyclipper.
 
         clipper is the polygon of "blow", it's a bit randomized and has given size as radius"""
+        #TODO: remade to change only one polygon, mb Batch.ivalidate will be useful
 
         window = self.window
         blow_radius = 25 * window.scale
@@ -463,6 +474,7 @@ class GameView(View):
             if not obstacle:
                 continue
             window.lobby.game.obstacles.append(obstacle)
+        self.obstacles_update_batch()
 
     def on_update(self, delta_time: float = 1 / 60):
         window = self.window
@@ -498,8 +510,8 @@ class GameView(View):
 
                 game.formula_current_x -= x_step
 
-                strip_line = shape_list.shape_list.create_line_strip(point_list=point_list, color=color.RED,
-                                                                     line_width=1 * window.scale)
+                strip_line = shape_list.create_line_strip(point_list=point_list, color=color.RED,
+                                                          line_width=1 * window.scale)
                 game.formula_segments.append(strip_line)  # adding new segment
 
                 # checking collision with other players or obstacles
@@ -517,7 +529,7 @@ class GameView(View):
                             self.stop_shooting()
                             return
 
-                    # checking player hits
+                    # checking for collision with players
                     collisions = arcade.get_sprites_at_point(point, game.players_sprites_list)
                     if collisions:
                         for player in game.all_players:
@@ -574,13 +586,32 @@ class GameView(View):
 
         arcade.finish_render()
 
-    def obstacles_draw(self):
-        start_time = time.time()
+    def obstacles_update_batch(self):
         game = self.window.lobby.game
+        self.obstacles_batch = pyglet.graphics.Batch()  # creating new batch
+        self.obstacle_batch_shapes = []
         for polygon in game.obstacles:
-            arcade.draw_polygon_filled(polygon, color=game.obstacles_color)
-            arcade.draw_polygon_outline(polygon, color=game.obstacles_border_color)
-        print('obstacles drawn in', 1000 * (time.time() - start_time), 'ms')
+            '''arcade.draw_polygon_filled(polygon, color=game.obstacles_color)
+            arcade.draw_polygon_outline(polygon, color=game.obstacles_border_color)'''
+            triangles = arcade.earclip.earclip(polygon)
+
+            # creating obstacle body
+            for tr in triangles:
+                element = pyglet.shapes.Triangle(tr[0][0], tr[0][1], tr[1][0], tr[1][1], tr[2][0], tr[2][1],
+                                                 game.obstacles_color, batch=self.obstacles_batch)
+                self.obstacle_batch_shapes.append(element)
+
+            # creating obstacle border
+            last_point = polygon[-1]
+            for point in polygon:
+                element = pyglet.shapes.Line(last_point[0],last_point[1],point[0],point[1],width=int(2*self.window.scale),
+                                             color=game.obstacles_border_color,batch=self.obstacles_batch)
+                self.obstacle_batch_shapes.append(element)
+                last_point = point
+
+    def obstacles_draw(self):
+        batch = self.obstacles_batch
+        batch.draw()
 
     def players_draw(self):
         self.window.lobby.game.players_sprites_list.draw()
