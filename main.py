@@ -18,12 +18,12 @@ If not, see <https://www.gnu.org/licenses/>.
 import json
 import os.path
 import string
-import time
+import sys
 
 import arcade
 import pyglet.image
 from pyglet.window import ImageMouseCursor
-from arcade import Window, get_screens, get_display_size, load_texture
+from arcade import Window, get_screens, get_display_size, load_texture, load_texture_pair
 
 from UIFixedElements import FixedUITextureToggle, FixedUITextureButton, AdvancedUIInputText
 from client import Client
@@ -79,25 +79,25 @@ def game_configure(window: Window):
 
 
 def preload_textures():
-    arcade.load_texture('textures/user_avatar.jpg')
-    arcade.load_texture('textures/default_avatar.jpg')
-    arcade.load_texture('textures/GameBackground_4k.jpg')
-    arcade.load_texture('textures/bottom_panel_4k.jpg')
-    arcade.load_texture('textures/MainMenuBackgroundLogo.png')
-    arcade.load_texture('textures/Settings_button_2048.png')
-    arcade.load_texture('textures/Lobby_BG_4k.jpg')
-    arcade.load_texture_pair('textures/player_sprite.png')
-    arcade.load_texture_pair('textures/player_sprite_dead.png')
-    arcade.load_texture('textures/fire_button.png')
-    arcade.load_texture('textures/fire_button_hovered.png')
-    arcade.load_texture('textures/fire_button_disabled.png')
-    arcade.load_texture('textures/fire_button_pressed.png')
-    arcade.load_texture('textures/LobbyExitButton.png')
-    arcade.load_texture('textures/LobbyExitButton_hovered.png')
-    arcade.load_texture('textures/square_checkBox_pressed.png')
-    arcade.load_texture('textures/square_checkBox_empty.png')
-    arcade.load_texture('textures/skip_vote_button.png')
-    arcade.load_texture('textures/skip_vote_button_hovered.png')
+    load_texture('textures/user_avatar.jpg')
+    load_texture('textures/default_avatar.jpg')
+    load_texture('textures/GameBackground_4k.jpg')
+    load_texture('textures/bottom_panel_4k.jpg')
+    load_texture('textures/MainMenuBackgroundLogo.png')
+    load_texture('textures/Settings_button_2048.png')
+    load_texture('textures/Lobby_BG_4k.jpg')
+    load_texture_pair('textures/player_sprite.png')
+    load_texture_pair('textures/player_sprite_dead.png')
+    load_texture('textures/fire_button.png')
+    load_texture('textures/fire_button_hovered.png')
+    load_texture('textures/fire_button_disabled.png')
+    load_texture('textures/fire_button_pressed.png')
+    load_texture('textures/LobbyExitButton.png')
+    load_texture('textures/LobbyExitButton_hovered.png')
+    load_texture('textures/square_checkBox_pressed.png')
+    load_texture('textures/square_checkBox_empty.png')
+    load_texture('textures/skip_vote_button.png')
+    load_texture('textures/skip_vote_button_hovered.png')
     load_texture('textures/LobbyPlayButton.png')
     load_texture('textures/LobbyPlayButton_hovered.png')
     load_texture('textures/LobbyAddBotButton.png')
@@ -108,10 +108,11 @@ def preload_textures():
 
 
 def preload_texts(window):
-
+    arcade.load_font('resources/Raleway.ttf')  # this font is used in lobby
     arcade.draw_text(string.ascii_letters, 0, 0)  # force font init (fixes lag on first text draw)
     arcade.draw_text(string.ascii_letters, 0, 0, font_size=int(14 * window.scale))
-    arcade.draw_text(string.ascii_letters, 0, 0, font_size=int(72 * window.scale), multiline=False, color=(128, 245, 255))
+    arcade.draw_text(string.ascii_letters, 0, 0, font_size=int(72 * window.scale), multiline=False,
+                     color=(128, 245, 255))
     arcade.draw_text(string.ascii_letters, 0, 0, font_name='Arial')
 
 
@@ -133,7 +134,7 @@ def preload_UI(window):
     formula_input_height = int(window.GRAPH_BOTTOM_EDGE - 5 - 95 * window.scale)
     formula_input_width = window.SCREEN_WIDTH / 2.88
     AdvancedUIInputText(text='formula', font_size=int(18 * window.scale),
-                        text_color=(255,255,255),
+                        text_color=(255, 255, 255),
                         multiline=True, width=formula_input_width,
                         height=formula_input_height)
 
@@ -168,6 +169,9 @@ def main():
         }
         with open('config.json', 'w') as file:
             json.dump(config, file, indent=4)
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        os.chdir(sys._MEIPASS)
 
     math_graph = Window(antialiasing=True, vsync=True)
     game_configure(math_graph)

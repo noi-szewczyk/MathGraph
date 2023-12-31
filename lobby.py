@@ -14,13 +14,18 @@ See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with MathGraph.
 If not, see <https://www.gnu.org/licenses/>.
 """
+
+import os
 import random
-import time
+import sys
 
 from player import Player
 from arcade import View, Window, gui, load_texture
 from game import Game, GameView
 from UIFixedElements import *
+
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
 
 
 class Lobby:
@@ -563,7 +568,6 @@ class LobbyView(View):
             swap_func = SwapFunction(player, self)
             swap_button.on_click = swap_func.swap
             self.temp_buttons_manager.add(swap_button)
-
 
     def players_draw(self):
         for client in self.clients_sprites:

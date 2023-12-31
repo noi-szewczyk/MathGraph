@@ -16,9 +16,14 @@ If not, see <https://www.gnu.org/licenses/>.
 """
 
 import json
+import os
+import sys
 
 from arcade import gui, Text, set_background_color, color, View, load_texture
 from UIFixedElements import *
+
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
 
 
 class SettingsView(View):
@@ -291,7 +296,7 @@ class SettingsView(View):
         self.manager.add(ui_anchor)
 
     def go_back(self, event):
-        from menu import  MenuView
+        from menu import MenuView
         view = MenuView(self.window)
         self.window.show_view(view)
 
