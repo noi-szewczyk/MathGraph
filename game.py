@@ -14,8 +14,11 @@ See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with MathGraph.
 If not, see <https://www.gnu.org/licenses/>.
 """
+
+import os
 import random
 import math
+import sys
 import time
 from threading import Timer
 from typing import Tuple
@@ -31,6 +34,8 @@ from player import Player
 import numpy as np
 import pyclipper  # for clipping obstacles
 
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
 
 class Game:
 

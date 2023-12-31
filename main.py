@@ -29,6 +29,9 @@ from UIFixedElements import FixedUITextureToggle, FixedUITextureButton, Advanced
 from client import Client
 from menu import MenuView
 
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
+
 
 def game_configure(window: Window):
     """loading parameters from json configure file"""
@@ -169,9 +172,6 @@ def main():
         }
         with open('config.json', 'w') as file:
             json.dump(config, file, indent=4)
-
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        os.chdir(sys._MEIPASS)
 
     math_graph = Window(antialiasing=True, vsync=True)
     game_configure(math_graph)
