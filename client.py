@@ -20,7 +20,7 @@ import arcade
 
 class Client:
     """This class contains all information about some client ( bot or player ) needed to other players to know who
-    is it, include name, avatar and other."""
+    is it, include name, avatar and other"""
 
     def __init__(self):
         self.avatar = arcade.load_texture('textures/default_avatar.jpg')
