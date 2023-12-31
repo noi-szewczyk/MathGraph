@@ -112,7 +112,7 @@ def preload_texts(window):
     arcade.draw_text(string.ascii_letters, 0, 0)  # force font init (fixes lag on first text draw)
     arcade.draw_text(string.ascii_letters, 0, 0, font_size=int(14 * window.scale))
     arcade.draw_text(string.ascii_letters, 0, 0, font_size=int(72 * window.scale), multiline=False,
-                     color=(128, 245, 255))
+                     color=(128, 245, 255, 255))
     arcade.draw_text(string.ascii_letters, 0, 0, font_name='Arial')
 
 
