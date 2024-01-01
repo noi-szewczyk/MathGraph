@@ -27,13 +27,18 @@ if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
 
 
 class SettingsView(View):
+    
+    if getattr(sys, 'frozen', False):
+        config_path = os.path.dirname(sys.executable)+'/config.json'
+    else:
+        config_path = 'config.json'
     def __init__(self, game):
         super().__init__(game)
         set_background_color(color.COOL_BLACK)
         self.manager = gui.UIManager()
         self.manager.enable()
         self.text_to_draw = []
-        with open('config.json', 'r') as file:
+        with open(self.config_path, 'r') as file:
             self.param_height = json.load(file)['SCREEN_HEIGHT']
         self.add_ui()
 
@@ -96,10 +101,10 @@ class SettingsView(View):
         @self.full_screen_switch.event('on_change')
         def change_full_screen(event):
             self.window.FULLSCREEN_MODE = 0 if self.window.FULLSCREEN_MODE else 1
-            with open('config.json', 'r') as file:
+            with open(self.config_path, 'r') as file:
                 config = json.load(file)
             config['FULLSCREEN_MODE'] = self.window.FULLSCREEN_MODE
-            with open('config.json', 'w') as file:
+            with open(self.config_path, 'w') as file:
                 json.dump(config, file, indent=4)
             self.full_screen_switch.value = self.window.FULLSCREEN_MODE
             self.add_ui()
@@ -135,12 +140,12 @@ class SettingsView(View):
 
         @self.resolution_1280x720.event('on_change')
         def change_resolution(event):
-            with open('config.json', 'r') as file:
+            with open(self.config_path, 'r') as file:
                 config = json.load(file)
             config['SCREEN_HEIGHT'] = 720
             self.param_height = 720
             config['SCREEN_WIDTH'] = 1280
-            with open('config.json', 'w') as file:
+            with open(self.config_path, 'w') as file:
                 json.dump(config, file, indent=4)
             self.resolution_1280x720.disabled = True
             self.add_ui()
@@ -169,12 +174,12 @@ class SettingsView(View):
 
         @self.resolution_1600x900.event('on_change')
         def change_resolution(event):
-            with open('config.json', 'r') as file:
+            with open(self.config_path, 'r') as file:
                 config = json.load(file)
             config['SCREEN_HEIGHT'] = 900
             self.param_height = 900
             config['SCREEN_WIDTH'] = 1600
-            with open('config.json', 'w') as file:
+            with open(self.config_path, 'w') as file:
                 json.dump(config, file, indent=4)
             self.resolution_1600x900.disabled = True
             self.add_ui()
@@ -203,12 +208,12 @@ class SettingsView(View):
 
         @self.resolution_1920x1080.event('on_change')
         def change_resolution(event):
-            with open('config.json', 'r') as file:
+            with open(self.config_path, 'r') as file:
                 config = json.load(file)
             config['SCREEN_HEIGHT'] = 1080
             self.param_height = 1080
             config['SCREEN_WIDTH'] = 1920
-            with open('config.json', 'w') as file:
+            with open(self.config_path, 'w') as file:
                 json.dump(config, file, indent=4)
             self.resolution_1920x1080.disabled = True
             self.add_ui()
@@ -237,12 +242,12 @@ class SettingsView(View):
 
         @self.resolution_2560x1440.event('on_change')
         def change_resolution(event):
-            with open('config.json', 'r') as file:
+            with open(self.config_path, 'r') as file:
                 config = json.load(file)
             config['SCREEN_HEIGHT'] = 1440
             self.param_height = 1440
             config['SCREEN_WIDTH'] = 2560
-            with open('config.json', 'w') as file:
+            with open(self.config_path, 'w') as file:
                 json.dump(config, file, indent=4)
             self.resolution_2560x1440.disabled = True
             self.add_ui()
@@ -271,12 +276,12 @@ class SettingsView(View):
 
         @self.resolution_3840x2160.event('on_change')
         def change_resolution(event):
-            with open('config.json', 'r') as file:
+            with open(self.config_path, 'r') as file:
                 config = json.load(file)
             config['SCREEN_HEIGHT'] = 2160
             self.param_height = 2160
             config['SCREEN_WIDTH'] = 3840
-            with open('config.json', 'w') as file:
+            with open(self.config_path, 'w') as file:
                 json.dump(config, file, indent=4)
             self.resolution_3840x2160.disabled = True
             self.add_ui()

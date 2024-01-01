@@ -14,11 +14,17 @@ See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with MathGraph.
 If not, see <https://www.gnu.org/licenses/>.
 """
+
+import os
 import random
+import sys
 
 import arcade
 
 from client import Client
+
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
 
 
 class Player:
