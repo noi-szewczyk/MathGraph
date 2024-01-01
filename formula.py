@@ -74,6 +74,7 @@ class Formula:
         infix_formula = re.sub(r'(\d)\s*([a-zA-Z(])', r'\1*\2', infix_formula)  # adding '*' signs
         infix_formula = re.sub(r'\)\(', ')*(', infix_formula)
         infix_formula = re.sub(r':', '/', infix_formula)  # changing ':' to '/'
+        infix_formula = re.sub(r'\)\s*([a-zA-Z]+)', r')*\1', infix_formula)  # adding '*' between ')' and word
 
         postfix_formula = []
         operators_stack = []
