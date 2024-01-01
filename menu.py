@@ -95,7 +95,7 @@ class MenuView(View):
         message_box = gui.UIMessageBox(
             width=300,
             height=200,
-            message_text='Multiplayer is not avaliable yet :<\nin progres..',
+            message_text='Multiplayer is not available yet :<\nin progres..',
             buttons=["Ok"],
         )
         self.manager.add(message_box)
