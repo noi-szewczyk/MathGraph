@@ -39,7 +39,7 @@ def game_configure(window: Window):
     if getattr(sys, 'frozen', False):
         config_path = os.path.dirname(sys.executable)+'/config.json'
     else:
-        config_path = '/config.json'
+        config_path = 'config.json'
     with open(config_path, 'r', encoding='utf-8') as file:
         config = json.load(file)
 
