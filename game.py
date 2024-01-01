@@ -444,7 +444,6 @@ class GameView(View):
         window = self.window
         blow_radius = 25 * window.scale
         obstacle = window.lobby.game.obstacles[obstacle_index]
-        window.lobby.game.obstacles.pop(obstacle_index)  # deleting old obstacle
 
         # generating clipping polygon
         angle_angle_sum = 0
@@ -469,9 +468,15 @@ class GameView(View):
 
         # calculating new obstacle(s)
         pc = pyclipper.Pyclipper()
+        pc.AddPath(obstacle, pyclipper.PT_CLIP, True)
+        pc.AddPath(clipper, pyclipper.PT_SUBJECT, True)
+        if not pc.Execute(pyclipper.CT_DIFFERENCE):  # if whole clipping polygon is inside subject
+            return
+        window.lobby.game.obstacles.pop(obstacle_index)  # deleting old obstacle
+        pc.Clear()
         pc.AddPath(obstacle, pyclipper.PT_SUBJECT, True)
         pc.AddPath(clipper, pyclipper.PT_CLIP, True)
-        new_obstacles = pc.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
+        new_obstacles = pc.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_EVENODD)
         for obstacle in new_obstacles:
             if not obstacle:
                 continue
