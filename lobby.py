@@ -467,7 +467,7 @@ class LobbyView(View):
     def bot_add(self, event):
         max_players_team = 4
         lobby = self.window.lobby
-        with open('bot_names.txt', 'r') as file:
+        with open('resources/bot_names.txt', 'r') as file:
             names = file.readlines()
         player = Player(name=random.choice(names))
         if len(lobby.team1) > max_players_team:
