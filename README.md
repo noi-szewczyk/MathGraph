@@ -1,20 +1,20 @@
 # MathGraph-combat
 Welcome to MathGraph!
 
-//тут надо будет рассписать про механику игры, а ниже уже написанно про сами формулы
+//тут надо будет расписать про механику игры, а ниже уже написано про сами формулы
 
 # functions guide<br>
 
-### avaliable operators:
+### available operators:
 
 * '/'=':' - division
 * '+' - addition
-* '-' - substraction
+* '-' - subtraction
 * '*' - multiplication
 * '(' and ')' - parentheses
 * '%' - modulo operator
 
-### avaliable functions:
+### available functions:
 *	abs() - absolute value
 *	sqrt() = rt() - square root
 *	exp() - exponent function = e^()
@@ -24,7 +24,7 @@ Welcome to MathGraph!
 *	log() = lg() - base  10 logarithm
 *	ln - natural logarithm
 
-### avaliable constants:
+### available constants:
 *	e - Euler's number = 2.718281828459045
 *	pi = 3.141592653589793238
 	
@@ -48,19 +48,31 @@ All operators have the same precedence as in math :
 Parentheses are optional, but recommended to avoid misinterpretations and to keep the formula 
 readable. If a function doesn't have parentheses, it will take the left side expression until firs '+' or '-'
 operator will be found (functions have the highest precedence only in relation to '+','-'):
-`sin 5*x+1 = sin(5*x)+1`, `sqrt sin 5*x^2 +5 = sqrt(sin(5*x^2))+5`
+* `sin 5*x+1 = sin(5*x)+1`
+* `sqrt sin 5*x^2 +5 = sqrt(sin(5*x^2))+5`
 
 You can skip the '*' sign between a number and any other object, but only when the number goes first :
-`5x=5*x`, `23.1pi=23.1*pi`, `2exp4(x+1)=2*exp 4*(x+1)`
-but `x5≠x*5`, `sin(x)3 ≠ sin(x)*3`, `xx ≠ x*x` (error).
-or between parentheses: `(x-1)(x+sin x) = (x-1)*(x+sin x)`
+* `5x=5*x`
+* `23.1pi=23.1*pi`
+* `2exp4(x+1) = 2*exp 4*(x+1)`
 
-White spaces, for instance a space , doen't affect anything, so you can type 
-`5*x` as well as `5 * x`, but the names of functions and constants must be separated via space, a parenthes,
- an operator or a number to be interpreted correctly. For instance, you should type `sin x exp x` instead of
-`sin xexp x` or even `sinxexpx` (I hope you didn’t plan to do so)
+but 
+* `x5≠x*5`
+* `sin(x)3 ≠ sin(x)*3`
+* `xx ≠ x*x` (`x x` also won't give `x*x` in result, because
+firs `x` is not a number)
 
-Using multiple operators together is not allowed:
+Or between parentheses: `(x-1)(x+sin x) = (x-1)*(x+sin x)`. In a similar way, the multiplication sign will be added 
+between closing parenthesis and a name of other function or constant: `sin(x) sin(x) = sin(x)*sin(x)`.
+
+White spaces, for instance a space, doesn't affect anything, so you can type 
+`5*x` as well as `5 * x`, but the space sign is delimiter, so you must put it between constant or function names if
+tere is no any other delimiters: `sin exp x` instead of `sinexpx` (I hope you don't plan to do so). Anyway it's better 
+to use parentheses here to avoid mistakes `sin(exp(x))`. Also, `500 000` will
+be interpreted as 2 numbers `500` and `0`. Number similarly can separate functions:<br> `sin4cos x = sin 4cos x =
+sin(4cos x) = sin(4*cos x) = sin(4*cos(x))`
+
+Using multiple or unnecessary operators is not allowed:
 equations `+5`, `5**x`, `pi^^x`, `12--x`,`5+-3x` are incorrect 
 but unary '-' is allowed as the first symbol and after '(' :
 `-x`, `sin(-exp)` is OK, but `sin -5x` isn't.
@@ -78,4 +90,6 @@ will be rather horizontal line, than expected vertical because of large values w
 was also annihilated. Same result may give addition off large number to any evaluation: `sin (5x) + 1000000000000`
 
 Modulo operator returns remainder of Donald Knuth's floored division. It means that `-3.4 % 1` will return `0.6` because 
-`-3.4-floor(-3.4) = -3.4-(-4) = 0.6`. It's quet hard operator, but very powerful.
+`-3.4-floor(-3.4) = -3.4-(-4) = 0.6`. It's quite hard operator, but very powerful. This operator makes a sharp jump,
+using which you can go through obstacles, teammates or even enemies! 2 points are connected by red line, but it's not a
+part of function, therefore this line hasn't collision.
