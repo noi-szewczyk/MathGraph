@@ -158,7 +158,8 @@ def main():
     """loading config to get settings,
     creating window  and then main menu view"""
 
-    if not os.path.isfile('./config.json'):  # create new standard config file in case of its absence
+    config_path = os.getcwd()+'/config.json'
+    if not os.path.isfile(config_path):  # create new standard config file in case of its absence
         config = {
             "SCREEN_WIDTH": 1280,
             "SCREEN_HEIGHT": 720,
@@ -170,7 +171,7 @@ def main():
             "client_name": "User",
             "client_avatar": "textures/default_avatar.jpg"
         }
-        with open('config.json', 'w') as file:
+        with open(config_path, 'w') as file:
             json.dump(config, file, indent=4)
 
     math_graph = Window(antialiasing=True, vsync=True)
