@@ -35,7 +35,12 @@ if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
 
 def game_configure(window: Window):
     """loading parameters from json configure file"""
-    with open('config.json', 'r', encoding='utf-8') as file:
+
+    if getattr(sys, 'frozen', False):
+        config_path = os.path.dirname(sys.executable)+'/config.json'
+    else:
+        config_path = '/config.json'
+    with open(config_path, 'r', encoding='utf-8') as file:
         config = json.load(file)
 
     window.lobby = None  # contains Lobby class, if user in some of them
@@ -158,7 +163,10 @@ def main():
     """loading config to get settings,
     creating window  and then main menu view"""
 
-    config_path = os.getcwd()+'/config.json'
+    if getattr(sys, 'frozen', False):
+        config_path = os.path.dirname(sys.executable)+'/config.json'
+    else:
+        config_path = 'config.json'
     if not os.path.isfile(config_path):  # create new standard config file in case of its absence
         config = {
             "SCREEN_WIDTH": 1280,
@@ -189,5 +197,9 @@ def main():
 try:
     main()
 except Exception as e:
-    with open('crash_report.txt', 'w') as file:
+    if getattr(sys, 'frozen', False):
+        report_path = os.path.dirname(sys.executable)+'/crash_report.txt'
+    else:
+        report_path = 'crash_report.txt'
+    with open(report_path, 'w') as file:
         file.write(str(e))  # creating file with error
