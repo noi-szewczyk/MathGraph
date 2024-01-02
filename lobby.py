@@ -38,6 +38,14 @@ class Lobby:
             self.team1.append(player)
         self.game = None
         self.chat = None
+        self.friendly_fire: bool = True
+        self.auxiliary_marks: bool = True
+        self.marks_frequency: int = 5
+        self.max_time_s: int = 90
+        self.obstacle_frequency: int = 20
+        self.game_field_width: float = Game._proportion_x2y_max
+        self.y_axis_limit: int = 16
+        self.x_axis_limit: int = int(self.y_axis_limit * self.game_field_width)
 
 
 class LobbyView(View):
@@ -50,7 +58,7 @@ class LobbyView(View):
         self.manager.enable()
         self.temp_buttons_manager = gui.UIManager()
         self.objects_to_draw = []
-        window.lobby.game = Game(multiplayer=self.lobby.multiplayer)
+        window.lobby.game: Game = None
         self.add_ui()
 
         self.background = load_texture('textures/Lobby_BG_4k.jpg')
@@ -135,10 +143,11 @@ class LobbyView(View):
         setting_box_scale = 0.25 * self.window.scale
 
         setting_box_texture = load_texture('textures/LobbySettingsBox.png')
+        setting_box_height = setting_box_texture.height * setting_box_scale
+        setting_box_width = setting_box_texture.width * setting_box_scale
         self.settings_box = arcade.Sprite(setting_box_texture, setting_box_scale,
-                                          int(self.window.width - setting_box_texture.width * setting_box_scale / 2),
-                                          int(self.window.height - setting_box_texture.height
-                                              / 2 * setting_box_scale))
+                                          int(self.window.width - setting_box_width / 2),
+                                          int(self.window.height - setting_box_height / 2))
 
         checkbox_empty_texture = load_texture('textures/CheckBoxBlue_empty.png')
         checkbox_pressed_texture = load_texture('textures/CheckBoxBlue_pressed.png')
@@ -153,295 +162,284 @@ class LobbyView(View):
 
         ui_anchor = gui.UIAnchorLayout()
 
+        # auxiliary marks toggle
         self.objects_to_draw.append(
             arcade.Text(text='Marks on axes', font_size=checkbox_font_size, font_name=checkbox_font,
-                        color=checkbox_color,
-                        anchor_y='center', anchor_x='left',
-                        start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
-                                                            - 50 * self.window.scale - checkbox_empty_texture.width
-                                                            * checkbox_scale),
-                        start_y=int(self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
-                                    - checkbox_empty_texture.height * checkbox_scale / 2)))
+                        color=checkbox_color, anchor_y='center', anchor_x='left',
+                        start_x=self.window.width + 5 - int(setting_box_width - 50 * self.window.scale
+                                                            - checkbox_empty_texture.width * checkbox_scale),
+                        start_y=int(self.window.height - (0.25 * setting_box_height)
+                                    - checkbox_empty_texture.height * checkbox_scale / 2)
+                        )
+        )
 
         self.is_axes_marked_box = FixedUITextureToggle(width=int(checkbox_empty_texture.width * checkbox_scale),
                                                        height=int(checkbox_empty_texture.height * checkbox_scale),
                                                        on_texture=checkbox_pressed_texture,
                                                        off_texture=checkbox_empty_texture)
-        self.is_axes_marked_box.value = lobby.game.axes_marked
-        ui_anchor.add(self.is_axes_marked_box, anchor_x='right', anchor_y='top', align_y=-int(
-            0.25 * setting_box_texture.height * setting_box_scale),
-                      align_x=-int(setting_box_texture.width * setting_box_scale
-                                   - 50 * self.window.scale - checkbox_empty_texture.width * checkbox_scale))
+        self.is_axes_marked_box.value = lobby.auxiliary_marks
 
-        self.is_friendly_fire_box = FixedUITextureToggle(width=int(checkbox_empty_texture.width * checkbox_scale),
-                                                         height=int(checkbox_empty_texture.height * checkbox_scale),
-                                                         on_texture=checkbox_pressed_texture,
-                                                         off_texture=checkbox_empty_texture)
-        self.is_friendly_fire_box.value = game.friendly_fire
-        ui_anchor.add(self.is_friendly_fire_box, anchor_x='right', anchor_y='top',
-                      align_x=-int(setting_box_texture.width * setting_box_scale - 50 * self.window.scale
-                                   - checkbox_empty_texture.width * checkbox_scale),
-                      align_y=-int(0.25 * setting_box_texture.height * setting_box_scale)
-                              - 1 * int(checkbox_empty_texture.height * checkbox_scale) - 1 * checkbox_vertical_offset)
+        @self.is_axes_marked_box.event('on_change')
+        def change(event):
+            lobby.auxiliary_marks = not lobby.auxiliary_marks
 
+        ui_anchor.add(self.is_axes_marked_box, anchor_x='right', anchor_y='top',
+                      align_y=-int(0.25 * setting_box_height),
+                      align_x=-int(setting_box_width - 50 * self.window.scale
+                                   - checkbox_empty_texture.width * checkbox_scale)
+                      )
+
+        # friendly fire toggle
         self.objects_to_draw.append(
             arcade.Text(text='Friendly fire allow', font_size=checkbox_font_size, font_name=checkbox_font,
                         color=checkbox_color,
                         anchor_y='center', anchor_x='left',
-                        start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
-                                                            - 50 * self.window.scale - checkbox_empty_texture.width
-                                                            * checkbox_scale),
-                        start_y=int(self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
-                                    - checkbox_empty_texture.height * checkbox_scale / 2 -
-                                    1 * int(
-                            checkbox_empty_texture.height * checkbox_scale) - 1 * checkbox_vertical_offset)))
+                        start_x=self.window.width - int(setting_box_width - 55 * self.window.scale
+                                                        - checkbox_empty_texture.width * checkbox_scale),
+                        start_y=int(self.window.height - 0.25 * setting_box_height - 1.5 * checkbox_empty_texture.height
+                                    * checkbox_scale - 1 * checkbox_vertical_offset)
+                        )
+        )
+        self.is_friendly_fire_box = FixedUITextureToggle(width=int(checkbox_empty_texture.width * checkbox_scale),
+                                                         height=int(checkbox_empty_texture.height * checkbox_scale),
+                                                         on_texture=checkbox_pressed_texture,
+                                                         off_texture=checkbox_empty_texture)
+        self.is_friendly_fire_box.value = lobby.friendly_fire
 
-        slider_style = {
+        @self.is_friendly_fire_box.event('on_change')
+        def change(event):
+            lobby.friendly_fire = not lobby.friendly_fire
+
+        ui_anchor.add(self.is_friendly_fire_box, anchor_x='right', anchor_y='top',
+                      align_x=-int(setting_box_width - 50 * self.window.scale
+                                   - checkbox_empty_texture.width * checkbox_scale),
+                      align_y=-int(0.25 * setting_box_height)
+                              - 1 * int(checkbox_empty_texture.height * checkbox_scale) - 1 * checkbox_vertical_offset)
+
+        slider_style = {  # style for sliders in setting box
             "normal": gui.UISliderStyle(
-                bg=(128, 245, 255),
-                border=(50, 50, 50),
-                filled_bar=(101, 225, 236),
-                unfilled_bar=(50, 50, 50)
+                bg=(128, 245, 255, 255),
+                border=(50, 50, 50, 255),
+                filled_bar=(101, 225, 236, 255),
+                unfilled_bar=(50, 50, 50, 255)
             ),
             "hover": gui.UISliderStyle(
-                bg=(255, 255, 255),
-                border=(50, 50, 50),
-                filled_bar=(101, 225, 236),
-                unfilled_bar=(50, 50, 50),
+                bg=(255, 255, 255, 255),
+                border=(50, 50, 50, 255),
+                filled_bar=(101, 225, 236, 255),
+                unfilled_bar=(50, 50, 50, 255),
                 border_width=0
             ),
             "press": gui.UISliderStyle(
-                bg=(255, 255, 255),
-                border=(50, 50, 50),
-                filled_bar=(101, 225, 236),
-                unfilled_bar=(50, 50, 50),
+                bg=(255, 255, 255, 255),
+                border=(50, 50, 50, 255),
+                filled_bar=(101, 225, 236, 255),
+                unfilled_bar=(50, 50, 50, 255),
 
             ),
             "disabled": gui.UISliderStyle()
         }
+
+        # Y axis limit
         self.objects_to_draw.append(
             arcade.Text(text='Y axis limit:', font_size=checkbox_font_size, font_name=checkbox_font,
                         color=checkbox_color,
                         anchor_y='top', anchor_x='left',
-                        start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
+                        start_x=self.window.width + 5 - int(setting_box_width
                                                             - 50 * self.window.scale),
-                        start_y=int(self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
+                        start_y=int(self.window.height - (0.25 * setting_box_height)
                                     - checkbox_empty_texture.height * checkbox_scale / 2 -
                                     1.5 * int(
                             checkbox_empty_texture.height * checkbox_scale) - 1.8 * checkbox_vertical_offset)))
 
-        self.y_limit_slider = gui.UISlider(value=game.y_edge, min_value=0,
+        self.y_limit_slider = gui.UISlider(value=int((lobby.y_axis_limit - 10) / 0.9), min_value=0,
                                            max_value=100, width=slider_width,
                                            height=slider_height, style=slider_style)
         ui_anchor.add(self.y_limit_slider, anchor_y='top', anchor_x='left',
-                      align_x=self.window.width - int(setting_box_texture.width * setting_box_scale
+                      align_x=self.window.width - int(setting_box_width
                                                       - 50 * self.window.scale),
-                      align_y=- (0.25 * setting_box_texture.height * setting_box_scale)
+                      align_y=- (0.25 * setting_box_height)
                               - checkbox_empty_texture.height * checkbox_scale / 2 -
                               1.5 * int(checkbox_empty_texture.height * checkbox_scale)
                               - 2.3 * checkbox_vertical_offset - int(checkbox_font_size))
-        self.y_edge_text = arcade.Text(anchor_y='top', anchor_x='left',
-                                       start_x=self.window.width
-                                               - int(setting_box_texture.width * setting_box_scale
-                                                     - 50 * self.window.scale) + int(175 * self.window.scale),
-                                       start_y=int(
-                                           self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
-                                           - checkbox_empty_texture.height * checkbox_scale / 2 -
-                                           1.5 * int(checkbox_empty_texture.height * checkbox_scale)
-                                           - 1.8 * checkbox_vertical_offset),
-                                       text=str(int(game.y_edge)), font_name=checkbox_font,
-                                       font_size=checkbox_font_size)
-        self.objects_to_draw.append(self.y_edge_text)
+        self.y_limit_value_text = arcade.Text(
+            anchor_y='top', anchor_x='left',
+            start_x=int(self.window.width - setting_box_width + 225 * self.window.scale),
+            start_y=int(self.window.height - 0.25 * setting_box_height
+                        - 2 * int(checkbox_empty_texture.height * checkbox_scale) - 1.8 * checkbox_vertical_offset),
+            text=str(lobby.y_axis_limit), font_name=checkbox_font, font_size=checkbox_font_size
+        )
+        self.objects_to_draw.append(self.y_limit_value_text)
 
         @self.y_limit_slider.event("on_change")
         def change(event):
-            game.y_edge = 10 + self.y_limit_slider.value * 90 / 100
-            game.x_edge = game.proportion_x2y * game.y_edge
-            self.y_edge_text.text = str(int(game.y_edge))
-            self.x_edge_text.text = str(int(game.x_edge))
+            lobby.y_axis_limit = int(10 + self.y_limit_slider.value * 90 / 100)
+            lobby.x_axis_limit = int(lobby.game_field_width * lobby.y_axis_limit)
+            self.y_limit_value_text.text = str(lobby.y_axis_limit)
+            self.x_edge_value_text.text = str(lobby.x_axis_limit)
 
+        # game field width ( x2y proportion )
         self.objects_to_draw.append(
             arcade.Text(text='game field width:', font_size=checkbox_font_size, font_name=checkbox_font,
                         color=checkbox_color,
                         anchor_y='top', anchor_x='left',
-                        start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
-                                                            - 50 * self.window.scale),
-                        start_y=int(self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
-                                    - checkbox_empty_texture.height * checkbox_scale / 2 -
-                                    2.5 * int(checkbox_empty_texture.height * checkbox_scale)
-                                    - 2 * checkbox_vertical_offset)))
+                        start_x=self.window.width - int(setting_box_width - 55 * self.window.scale),
+                        start_y=int(self.window.height - (0.25 * setting_box_height)
+                                    - 3 * int(checkbox_empty_texture.height * checkbox_scale)
+                                    - 2 * checkbox_vertical_offset)
+                        )
+        )
 
-        self.width_slider = gui.UISlider(value=100, min_value=0,
-                                         max_value=100, width=slider_width,
+        self.width_slider = gui.UISlider(value=int((lobby.game_field_width-1)*100/(Game._proportion_x2y_max - 1)),
+                                         min_value=0, max_value=100,  width=slider_width,
                                          height=slider_height, style=slider_style)
 
         @self.width_slider.event("on_change")
         def change(event):
-            game.proportion_x2y = self.width_slider.value * (game.proportion_x2y_max - 1) / 100 + 1
-            game.x_edge = game.proportion_x2y * game.y_edge
-            self.x_edge_text.text = str(int(game.x_edge))
+            lobby.game_field_width = self.width_slider.value * (Game._proportion_x2y_max - 1) / 100 + 1
+            lobby.x_axis_limit = int(lobby.game_field_width * lobby.y_axis_limit)
+            self.x_edge_value_text.text = str(lobby.x_axis_limit)
 
         ui_anchor.add(self.width_slider, anchor_y='top', anchor_x='left',
-                      align_x=self.window.width - int(setting_box_texture.width * setting_box_scale
+                      align_x=self.window.width - int(setting_box_width
                                                       - 50 * self.window.scale),
-                      align_y=- (0.25 * setting_box_texture.height * setting_box_scale)
-                              - checkbox_empty_texture.height * checkbox_scale / 2 -
-                              2.5 * int(checkbox_empty_texture.height * checkbox_scale)
-                              - 2 * checkbox_vertical_offset - int(checkbox_font_size * 1.5))
+                      align_y=- (0.25 * setting_box_height)
+                              - 3 * int(checkbox_empty_texture.height * checkbox_scale)
+                              - 2 * checkbox_vertical_offset - int(checkbox_font_size * 1.5)
+                      )
 
+        # x axis limit text
         self.objects_to_draw.append(
             arcade.Text(text='X axis limit:', font_size=checkbox_font_size, font_name=checkbox_font,
                         anchor_y='top', anchor_x='left', color=checkbox_color,
-                        start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
+                        start_x=self.window.width + 5 - int(setting_box_width
                                                             - 50 * self.window.scale),
-                        start_y=int(self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
+                        start_y=int(self.window.height - (0.25 * setting_box_height)
                                     - checkbox_empty_texture.height * checkbox_scale / 2 -
                                     2 * int(checkbox_empty_texture.height * checkbox_scale)
                                     - 2.5 * checkbox_vertical_offset - int(checkbox_font_size * 2.5) - int(
                             30 * self.window.scale))
                         )
         )
+        self.x_edge_value_text = arcade.Text(
+            text=str(lobby.x_axis_limit), font_size=checkbox_font_size, font_name=checkbox_font, anchor_y='top',
+            anchor_x='left',
+            start_x=self.window.width - int(setting_box_width - 225 * self.window.scale),
+            start_y=int(self.window.height - 0.25 * setting_box_height
+                        - 2.5 * int(checkbox_empty_texture.height * checkbox_scale) - 2.5 * checkbox_vertical_offset
+                        - 2.5 * checkbox_font_size - 30 * self.window.scale)
+        )
+        self.objects_to_draw.append(self.x_edge_value_text)
 
-        self.x_edge_text = arcade.Text(text=str(int(game.x_edge)), font_size=checkbox_font_size,
-                                       font_name=checkbox_font,
-                                       anchor_y='top', anchor_x='left',
-                                       start_x=self.window.width - int(setting_box_texture.width * setting_box_scale
-                                                                       - 50 * self.window.scale) + int(
-                                           175 * self.window.scale),
-                                       start_y=int(
-                                           self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
-                                           - checkbox_empty_texture.height * checkbox_scale / 2 -
-                                           2 * int(checkbox_empty_texture.height * checkbox_scale)
-                                           - 2.5 * checkbox_vertical_offset - int(checkbox_font_size * 2.5) - int(
-                                               30 * self.window.scale))
-                                       )
-        self.objects_to_draw.append(self.x_edge_text)
-
-        @self.is_friendly_fire_box.event('on_change')
-        def change(event):
-            game.friendly_fire = not game.friendly_fire
-
-        @self.is_axes_marked_box.event('on_change')
-        def change(event):
-            game.axes_marked = not self.window.lobby.game.axes_marked
-
+        # marks frequency
         self.objects_to_draw.append(
             arcade.Text(text='Marks frequency:', font_size=checkbox_font_size, font_name=checkbox_font,
-                        color=checkbox_color,
-                        anchor_y='center', anchor_x='left',
-                        start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
-                                                            - 420 * self.window.scale - checkbox_empty_texture.width
-                                                            * checkbox_scale),
-                        start_y=int(self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
-                                    - checkbox_empty_texture.height * checkbox_scale / 2)))
+                        color=checkbox_color, anchor_y='center', anchor_x='left',
+                        start_x=self.window.width - int(setting_box_width - 425 * self.window.scale
+                                                        - checkbox_empty_texture.width * checkbox_scale),
+                        start_y=int(self.window.height - 0.25 * setting_box_height
+                                    - checkbox_empty_texture.height * checkbox_scale / 2)
+                        )
+        )
 
-        self.marks_frequency_slider = gui.UISlider(value=(game.marks_frequency - 1) / 49 * 100, min_value=0,
+        self.marks_frequency_slider = gui.UISlider(value=(lobby.marks_frequency - 1) / 49 * 100, min_value=0,
                                                    max_value=100, width=slider_width,
                                                    height=slider_height, style=slider_style)
 
         @self.marks_frequency_slider.event("on_change")
         def change(event):
-            game.marks_frequency = int(self.marks_frequency_slider.value * 49 / 100) + 1
-            self.marks_frequency_text.text = str(int(game.marks_frequency))
+            lobby.marks_frequency = int(self.marks_frequency_slider.value * 49 / 100) + 1
+            self.marks_frequency_value_text.text = str(lobby.marks_frequency)
 
         ui_anchor.add(self.marks_frequency_slider, anchor_y='top', anchor_x='left',
-                      align_x=self.window.width - int(setting_box_texture.width * setting_box_scale
-                                                      - 420 * self.window.scale - checkbox_empty_texture.width
-                                                      * checkbox_scale),
-                      align_y=- (0.25 * setting_box_texture.height * setting_box_scale)
+                      align_x=self.window.width - int(setting_box_width - 420 * self.window.scale
+                                                      - checkbox_empty_texture.width * checkbox_scale),
+                      align_y=- 0.25 * setting_box_height
                               - checkbox_empty_texture.height * checkbox_scale / 2 - checkbox_vertical_offset)
 
-        self.marks_frequency_text = arcade.Text(str(int(game.marks_frequency)), anchor_x='left', anchor_y='center',
-                                                start_x=self.window.width - int(
-                                                    setting_box_texture.width * setting_box_scale
-                                                    - 665 * self.window.scale - checkbox_empty_texture.width
-                                                    * checkbox_scale),
-                                                start_y=int(self.window.height - (
-                                                        0.25 * setting_box_texture.height * setting_box_scale)
-                                                            - checkbox_empty_texture.height * checkbox_scale / 2),
-                                                font_size=checkbox_font_size, font_name=checkbox_font)
-        self.objects_to_draw.append(self.marks_frequency_text)
+        self.marks_frequency_value_text = arcade.Text(
+            str(lobby.marks_frequency), anchor_x='left', anchor_y='center',
+            start_x=self.window.width - int(setting_box_width - 665 * self.window.scale 
+                                            - checkbox_empty_texture.width * checkbox_scale),
+            start_y=int(self.window.height - 0.25 * setting_box_height
+                        - checkbox_empty_texture.height * checkbox_scale / 2),
+            font_size=checkbox_font_size, font_name=checkbox_font)
+        self.objects_to_draw.append(self.marks_frequency_value_text)
 
-        # adding time limit setting
-        self.time_limit = arcade.Text(
-            'Time limit (s) :', anchor_x='left', anchor_y='top',
-            start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
-                                                - 420 * self.window.scale - checkbox_empty_texture.width * checkbox_scale),
-            start_y=int(self.window.height - (0.25 * setting_box_texture.height * setting_box_scale)
+        # time limit setting
+        self.objects_to_draw.append(
+            arcade.Text(
+                'Time limit (s) :', anchor_x='left', anchor_y='top',
+                start_x=self.window.width - int(setting_box_width - 425 * self.window.scale
+                                                - checkbox_empty_texture.width * checkbox_scale),
+                start_y=int(self.window.height - 0.25 * setting_box_height
+                            - 3 * checkbox_empty_texture.height * checkbox_scale / 2),
+                font_size=checkbox_font_size, font_name=checkbox_font, color=checkbox_color)
+        )
+
+        self.time_limit_text = arcade.Text(
+            str(lobby.max_time_s), anchor_x='left', anchor_y='top',
+            start_x=self.window.width - int(setting_box_width - 665 * self.window.scale - checkbox_empty_texture.width
+                                            * checkbox_scale),
+            start_y=int(self.window.height - 0.25 * setting_box_height
                         - 3 * checkbox_empty_texture.height * checkbox_scale / 2),
-            font_size=checkbox_font_size, font_name=checkbox_font, color=checkbox_color)
-        self.objects_to_draw.append(self.time_limit)
-
-        self.time_limit_text = arcade.Text(str(game.max_time_s), anchor_x='left', anchor_y='top',
-                                           start_x=self.window.width - int(
-                                               setting_box_texture.width * setting_box_scale
-                                               - 665 * self.window.scale - checkbox_empty_texture.width
-                                               * checkbox_scale),
-                                           start_y=int(self.window.height - (
-                                                   0.25 * setting_box_texture.height * setting_box_scale)
-                                                       - 3 * checkbox_empty_texture.height * checkbox_scale / 2),
-                                           font_size=checkbox_font_size, font_name=checkbox_font)
+            font_size=checkbox_font_size, font_name=checkbox_font
+        )
         self.objects_to_draw.append(self.time_limit_text)
 
-        self.time_limit_slider = gui.UISlider(value=int((game.max_time_s - 30) / 120 * 100), min_value=0,
+        self.time_limit_slider = gui.UISlider(value=int((lobby.max_time_s - 30) / 120 * 100), min_value=0,
                                               max_value=100, width=slider_width,
                                               height=slider_height, style=slider_style)
-
         @self.time_limit_slider.event("on_change")
         def change(event):
-            game.max_time_s = int(self.time_limit_slider.value * 120 / 100) + 30
-            self.time_limit_text.text = str(game.max_time_s)
+            lobby.max_time_s = int(self.time_limit_slider.value * 120 / 100) + 30
+            self.time_limit_text.text = str(lobby.max_time_s)
 
         ui_anchor.add(self.time_limit_slider, anchor_y='top', anchor_x='left',
-                      align_x=self.window.width - int(setting_box_texture.width * setting_box_scale
-                                                      - 420 * self.window.scale - checkbox_empty_texture.width
-                                                      * checkbox_scale),
-                      align_y=int(- 0.25 * setting_box_texture.height * setting_box_scale
+                      align_x=self.window.width - int(setting_box_width - 420 * self.window.scale
+                                                      - checkbox_empty_texture.width * checkbox_scale),
+                      align_y=int(- 0.25 * setting_box_height
                                   - 1.5 * checkbox_empty_texture.height * checkbox_scale
                                   - checkbox_font_size - 0.5 * checkbox_vertical_offset)
                       )
 
-        # adding obstacle frequency ( amount ) setting
-        self.obstacle_frequency = arcade.Text(
-            'obstacle frequency:', anchor_x='left', anchor_y='top',
-            start_x=self.window.width + 5 - int(setting_box_texture.width * setting_box_scale
-                                                - 420 * self.window.scale
-                                                - checkbox_empty_texture.width * checkbox_scale),
-            start_y=int(self.window.height + (- 0.25 * setting_box_texture.height * setting_box_scale
-                                              - 1.5 * checkbox_empty_texture.height * checkbox_scale
-                                              - checkbox_font_size - 0.5 * checkbox_vertical_offset
-                                              - int(30 * self.window.scale))
-                        ), font_size=checkbox_font_size, font_name=checkbox_font, color=checkbox_color
+        # obstacle frequency
+        self.objects_to_draw.append(
+            arcade.Text('obstacle frequency:', anchor_x='left', anchor_y='top',
+                        start_x=self.window.width + 5 - int(setting_box_width - 420 * self.window.scale
+                                                            - checkbox_empty_texture.width * checkbox_scale),
+                        start_y=int(self.window.height - 0.25 * setting_box_height
+                                    - 1.5 * checkbox_empty_texture.height * checkbox_scale
+                                    - checkbox_font_size - 0.5 * checkbox_vertical_offset - 30 * self.window.scale),
+                        font_size=checkbox_font_size, font_name=checkbox_font, color=checkbox_color
+                        )
         )
-        self.objects_to_draw.append(self.obstacle_frequency)
 
-        self.obstacle_frequency_value = arcade.Text(
-            str(game.obstacle_frequency), anchor_x='left', anchor_y='top',
-            start_x=self.window.width - int(setting_box_texture.width * setting_box_scale
-                                            - 680 * self.window.scale - checkbox_empty_texture.width
-                                            * checkbox_scale),
-            start_y=int(self.window.height + (- 0.25 * setting_box_texture.height * setting_box_scale
-                                              - 1.5 * checkbox_empty_texture.height * checkbox_scale
-                                              - checkbox_font_size - 0.5 * checkbox_vertical_offset - slider_height)
-                        ), font_size=checkbox_font_size, font_name=checkbox_font, color=(255, 255, 255)
+        self.obstacle_frequency_value_text = arcade.Text(
+            str(lobby.obstacle_frequency), anchor_x='left', anchor_y='top',
+            start_x=self.window.width - int(setting_box_width - 680 * self.window.scale
+                                            - checkbox_empty_texture.width * checkbox_scale),
+            start_y=int(self.window.height - 0.25 * setting_box_height
+                        - 1.5 * checkbox_empty_texture.height * checkbox_scale
+                        - checkbox_font_size - 0.5 * checkbox_vertical_offset - slider_height),
+            font_size=checkbox_font_size, font_name=checkbox_font, color=(255, 255, 255)
         )
-        self.objects_to_draw.append(self.obstacle_frequency_value)
+        self.objects_to_draw.append(self.obstacle_frequency_value_text)
 
         self.obstacle_frequency_slider = gui.UISlider(
-            value=int(game.obstacle_frequency), min_value=0, max_value=100, width=slider_width,
+            value=lobby.obstacle_frequency, min_value=0, max_value=100, width=slider_width,
             height=slider_height, style=slider_style
         )
 
         @self.obstacle_frequency_slider.event("on_change")
         def change(event):
-            game.obstacle_frequency = int(self.obstacle_frequency_slider.value)
-            self.obstacle_frequency_value.text = str(game.obstacle_frequency)
+            lobby.obstacle_frequency = int(self.obstacle_frequency_slider.value)
+            self.obstacle_frequency_value_text.text = str(lobby.obstacle_frequency)
 
         ui_anchor.add(self.obstacle_frequency_slider, anchor_y='top', anchor_x='left',
-                      align_x=self.window.width - int(setting_box_texture.width * setting_box_scale
-                                                      - 420 * self.window.scale - checkbox_empty_texture.width
-                                                      * checkbox_scale),
-                      align_y=int(- 0.25 * setting_box_texture.height * setting_box_scale
+                      align_x=self.window.width - int(setting_box_width - 420 * self.window.scale
+                                                      - checkbox_empty_texture.width * checkbox_scale),
+                      align_y=int(- 0.25 * setting_box_height
                                   - 1.5 * checkbox_empty_texture.height * checkbox_scale
                                   - checkbox_font_size - 0.75 * checkbox_vertical_offset - 2 * slider_height)
                       )
@@ -484,6 +482,19 @@ class LobbyView(View):
         self.window.show_view(view)
 
     def start_solo_game(self, event):
+
+        # preparing new game
+        game = self.lobby.game = Game(multiplayer=self.lobby.multiplayer)
+        game.axes_marked = self.lobby.auxiliary_marks
+        game.marks_frequency = self.lobby.marks_frequency
+        game.friendly_fire = self.lobby.friendly_fire
+        game.y_edge = self.lobby.y_axis_limit
+        game.x_edge = self.lobby.x_axis_limit
+        game.proportion_x2y = self.lobby.game_field_width
+        game.max_time_s = self.lobby.max_time_s
+        game.obstacle_frequency = self.lobby.obstacle_frequency
+
+        # adding players from lobby
         for player in self.window.lobby.team1:
             if player.client == self.window.client:
                 self.lobby.game.left_team = self.lobby.team1
@@ -498,7 +509,7 @@ class LobbyView(View):
             else:
                 raise Exception('You are not a member of any team!')
 
-        self.lobby.game.prepare()
+        game.prepare()
         view = GameView(self.window)
         self.window.show_view(view)
 
