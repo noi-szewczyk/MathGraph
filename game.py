@@ -716,7 +716,7 @@ class GameView(View):
         )
         self.game_field_objects.append(
             shape_list.create_line(
-                start_x=self.graph_right_edge + 10, start_y=self.graph_y_center - 7, end_x=self.graph_right_edge,
+                start_x=self.graph_right_edge - 10, start_y=self.graph_y_center - 7, end_x=self.graph_right_edge,
                 end_y=self.graph_y_center, color=arcade.types.Color.from_hex_string(graph_lines_color_hex)
             )
         )
