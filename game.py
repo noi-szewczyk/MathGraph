@@ -259,6 +259,7 @@ class GameView(View):
         self.formula_field.caret.move_to_point(4000, 0)  # moving caret to the end
         self.formula_field.layout.document.set_style(0, -1,
                                                      {"wrap": "char"})  # setting line feed to feed after every char
+        self.formula_field._active = True  # making it active by default
 
         formula_anchor = gui.UIAnchorLayout()
         formula_anchor.add(self.formula_field, anchor_x='center', anchor_y='bottom', align_y=int(60 * window.scale))
