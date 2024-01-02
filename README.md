@@ -166,4 +166,11 @@ Modulo operator returns remainder of Donald Knuth's floored division. It means t
 `-3.4-floor(-3.4) = -3.4-(-4) = 0.6`. It's quite hard operator, but very powerful. This operator makes a sharp jump,
 using which you can go through obstacles, teammates or even enemies! 2 points are connected by red line, but it's not a
 part of function, therefore this line hasn't collision:
+
 ![](resources/modulo%20jump%20example.png)
+
+Please, note that although the function is one line, essentially it's just connected points, so your function grows rapidly<br>
+as `x%5`, this vertical lines are just part of design and aren't real, therefore they can go through obstacles and players.
+
+in case of `%` operator it can be useful, but be careful with other sharp functions like `5 sin(100x)`: it looks very
+dense, but it's only illusion and if you are very lucky,  it also can go through enemy.
