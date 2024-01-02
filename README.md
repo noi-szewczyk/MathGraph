@@ -169,7 +169,7 @@ part of function, therefore this line hasn't collision:
 
 ![](resources/modulo%20jump%20example.png)
 
-Please, note that although the function is one line, essentially it's just connected points, so your function grows rapidly<br>
+Please, note that although the function is one line, essentially it's just connected points, so if your function grows rapidly
 as `x%5`, this vertical lines are just part of design and aren't real, therefore they can go through obstacles and players.
 
 in case of `%` operator it can be useful, but be careful with other sharp functions like `5 sin(100x)`: it looks very
