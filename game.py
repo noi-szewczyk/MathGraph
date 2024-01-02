@@ -37,14 +37,15 @@ import pyclipper  # for clipping obstacles
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
 
+
 class Game:
+    _proportion_x2y_max = 2.383
 
     def __init__(self, left_team: list = [], right_team: list = [], multiplayer: bool = False, axes_marked: bool = True,
                  marks_frequency: int = 5, proportion_x2y: float = 2.383,
                  y_edge: int = 16, friendly_fire_enable: bool = True, max_time_s: int = 150):
 
         self.multiplayer = multiplayer
-        self.proportion_x2y_max = 2.383
         self.friendly_fire = friendly_fire_enable
         self.prev_active_player = None
         self.max_time_s = max_time_s
@@ -78,6 +79,7 @@ class Game:
         self.formula_segments = shape_list.ShapeElementList()
 
     def prepare(self):
+        self.timer_time = self.max_time_s
         self.prev_active_player = None
         self.players_sprites_list = SpriteList(use_spatial_hash=True)
         self.shooting = False
@@ -104,7 +106,6 @@ class Game:
 
 
 class GameView(View):
-
     background = load_texture('textures/GameBackground_4k.jpg')
     panel_texture = load_texture('textures/bottom_panel_4k.jpg')
 
@@ -121,6 +122,8 @@ class GameView(View):
 
         if not window.lobby.game:
             raise Exception
+
+        self.game = window.lobby.game
 
         # creating sprites of players
         for player in window.lobby.game.all_players:
@@ -152,7 +155,6 @@ class GameView(View):
         self.manager = gui.UIManager()  # for all gui elements
         self.add_ui()
 
-
         # generating obstacles
         self.create_obstacles()
         self.obstacles_update_batch()
@@ -167,7 +169,8 @@ class GameView(View):
         (now only locally) """
 
         game = self.window.lobby.game
-        max_polygons = int(game.obstacle_frequency * 0.8 * game.proportion_x2y / game.proportion_x2y_max)
+        game.obstacles.clear()  # deleting old obstacles
+        max_polygons = int(game.obstacle_frequency * 0.8 * game.proportion_x2y / game._proportion_x2y_max)
         for i in range(
                 int(max_polygons * (1 + random.randint(-15, 15) / 100))):  # creating +-15% from max_polygons times
             """generating new polygon"""
@@ -240,6 +243,8 @@ class GameView(View):
 
     def on_hide_view(self):
         self.manager.disable()
+        if self.timer:
+            self.timer.cancel()
 
     def add_ui(self):
         """There is creating of all IU:
@@ -288,6 +293,7 @@ class GameView(View):
         vote_button_texture_hovered = load_texture('textures/skip_vote_button_hovered.png')
         vote_button_scale = 0.675 * window.scale
 
+        # adding skip vote
         skip_checkbox = FixedUITextureToggle(on_texture=checkbox_pressed_texture,
                                              off_texture=checkbox_empty_texture,
                                              value=False, width=checkbox_empty_texture.width * checkbox_scale,
@@ -300,6 +306,11 @@ class GameView(View):
         @vote_button.event("on_click")
         def vote(event):
             skip_checkbox.value = not skip_checkbox.value
+            self.skip_vote()
+
+        @skip_checkbox.event("on_change")
+        def vote(event):
+            self.skip_vote()
 
         ui_anchor = gui.UIAnchorLayout()
         ui_anchor.add(formula_anchor)
@@ -327,6 +338,12 @@ class GameView(View):
             start_x=int(window.width - 210 * window.scale), start_y=int(110 * window.scale),
             font_size=int(72 * window.scale)
         )
+
+    def skip_vote(self):
+        if not self.game.multiplayer:  # immediately change map if game it's solo game
+            if self.timer:
+                self.timer.cancel()
+            start_new_game(self.window.lobby, self.window)
 
     def game_quit(self, event):
         message_box = gui.UIMessageBox(
@@ -429,6 +446,7 @@ class GameView(View):
 
     def game_finish(self):
         from lobby import LobbyView
+        arcade.finish_render()
         view = LobbyView(self.window)
         self.window.show_view(view)
 
@@ -439,7 +457,7 @@ class GameView(View):
         it's a miracle that it works. Pls, don't touch the part with pyclipper.
 
         clipper is the polygon of "blow", it's a bit randomized and has given size as radius"""
-        #TODO: remade to change only one polygon, mb Batch.ivalidate will be useful
+        # TODO: remade to change only one polygon, mb Batch.ivalidate will be useful
 
         window = self.window
         blow_radius = 25 * window.scale
@@ -611,8 +629,9 @@ class GameView(View):
             # creating obstacle border
             last_point = polygon[-1]
             for point in polygon:
-                element = pyglet.shapes.Line(last_point[0],last_point[1],point[0],point[1],width=int(2*self.window.scale),
-                                             color=game.obstacles_border_color,batch=self.obstacles_batch)
+                element = pyglet.shapes.Line(last_point[0], last_point[1], point[0], point[1],
+                                             width=int(2 * self.window.scale),
+                                             color=game.obstacles_border_color, batch=self.obstacles_batch)
                 self.obstacle_batch_shapes.append(element)
                 last_point = point
 
@@ -886,3 +905,10 @@ class GameView(View):
         self.game_field_objects.draw()
         for text in self.text_to_draw:
             text.draw()
+
+
+def start_new_game(lobby, window):
+    game = lobby.game
+    game.prepare()
+    view = GameView(window)
+    window.show_view(view)
