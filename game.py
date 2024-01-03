@@ -231,10 +231,6 @@ class GameView(View):
 
     def time_tick(self):
         self.window.lobby.game.timer_time -= 1
-        timer_time = self.window.lobby.game.timer_time
-        if timer_time == 0:
-            self.pass_turn_to_next_player()
-            return
         self.timer = Timer(1, self.time_tick)
         self.timer.start()
 
@@ -347,6 +343,7 @@ class GameView(View):
             start_new_game(self.window.lobby, self.window)
 
     def game_quit(self, event):
+        # TODO: customize message box, make font bigger and use some UI background
         message_box = gui.UIMessageBox(
             width=400,
             height=300,
@@ -427,6 +424,7 @@ class GameView(View):
         if self.is_game_end():
             self.game_finish()
             return
+
         """pass the turn to the next alive player in opposite team"""
         next_team = game.left_team.copy() if game.active_player in game.right_team else game.right_team.copy()
         next_team.extend(next_team)  # making part of 'cycle'
@@ -447,7 +445,6 @@ class GameView(View):
 
     def game_finish(self):
         from lobby import LobbyView
-        arcade.finish_render()
         view = LobbyView(self.window)
         self.window.show_view(view)
 
@@ -506,27 +503,31 @@ class GameView(View):
         window = self.window
         game = window.lobby.game
 
-        self.graph_top_edge = self.graph_top_edge
-        self.graph_bottom_edge = self.graph_bottom_edge
-        self.graph_left_edge = int(
-            window.SCREEN_WIDTH - (self.graph_top_edge - self.graph_bottom_edge) * game.proportion_x2y) // 2
-        self.graph_right_edge = window.SCREEN_WIDTH - self.graph_left_edge
-        self.graph_width = (self.graph_right_edge - self.graph_left_edge)
+        # if no time left, pass the turn to the next player
+        if self.window.lobby.game.timer_time == 0:
+            self.pass_turn_to_next_player()
+            return
 
         if game.shooting:
             # calculation few next segments of graphic
+
+            graph_left_edge = int(
+                window.SCREEN_WIDTH - (self.graph_top_edge - self.graph_bottom_edge) * game.proportion_x2y) // 2
+            graph_right_edge = window.SCREEN_WIDTH - graph_left_edge
+            graph_width = (graph_right_edge - graph_left_edge)
+
             segments_per_tick = int(12 * self.window.scale)
             try:
                 translation_y_delta = game.active_player.y - 1 * game.formula.evaluate(game.active_player.x)
                 x_step_px = 0.5 * window.scale  # the size of function step in px
-                x_step = x_step_px * 2 * game.x_edge / self.graph_width * (1 if game.active_player.left_player else -1)
+                x_step = x_step_px * 2 * game.x_edge / graph_width * (1 if game.active_player.left_player else -1)
                 point_list = []
                 for _ in range(segments_per_tick + 1):
                     # evaluating next point coordinates
                     y_val = game.formula.evaluate(game.formula_current_x) + translation_y_delta
 
                     point_list.append((window.SCREEN_X_CENTER +
-                                       self.graph_width / 2 / window.lobby.game.x_edge * game.formula_current_x,
+                                       graph_width / 2 / window.lobby.game.x_edge * game.formula_current_x,
                                        (self.graph_top_edge + self.graph_bottom_edge) / 2 +
                                        (self.graph_top_edge - self.graph_bottom_edge) / 2 / window.lobby.game.y_edge * (
                                            y_val)))
@@ -542,11 +543,6 @@ class GameView(View):
 
                 # checking collision with other players or obstacles
                 for point in strip_line.points:
-                    # checking for crossing over vertical borders
-                    if point[1] >= self.graph_top_edge or point[1] <= self.graph_bottom_edge:
-                        self.stop_shooting()
-                        return
-
                     # checking for collision with obstacles:
                     for obstacle_index in range(len(game.obstacles)):
 
@@ -566,6 +562,12 @@ class GameView(View):
                                     return
                                 self.kill_player(player)
                                 break
+
+                # checking for crossing over vertical borders
+                if point_list[-1][1] >= self.graph_top_edge or point_list[-1][1] <= self.graph_bottom_edge:
+                    self.stop_shooting()
+                    return
+
                 # checking for crossing over horizontal borders
                 if abs(game.formula_current_x) >= game.x_edge:
                     self.stop_shooting()
