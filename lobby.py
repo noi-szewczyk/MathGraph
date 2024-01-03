@@ -138,10 +138,8 @@ class LobbyView(View):
 
     def settings_ui_add(self):
         lobby = self.window.lobby
-        game = lobby.game
 
         setting_box_scale = 0.25 * self.window.scale
-
         setting_box_texture = load_texture('textures/LobbySettingsBox.png')
         setting_box_height = setting_box_texture.height * setting_box_scale
         setting_box_width = setting_box_texture.width * setting_box_scale
