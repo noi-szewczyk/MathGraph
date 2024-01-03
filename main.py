@@ -167,6 +167,7 @@ def main():
         config_path = os.path.dirname(sys.executable)+'/config.json'
     else:
         config_path = 'config.json'
+
     if not os.path.isfile(config_path):  # create new standard config file in case of its absence
         config = {
             "SCREEN_WIDTH": 1280,
