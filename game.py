@@ -112,8 +112,9 @@ class GameView(View):
     def __init__(self, window: Window):
         super().__init__(window)
 
+        self.obstacle_border_batch_shapes = None
         self.obstacles_batch: pyglet.graphics.Batch() = None
-        self.obstacle_batch_shapes = None
+        self.obstacle_body_batch_shapes = None
         self.formula_field: AdvancedUIInputText = None
         self.time_text: Text = None
         self.game_field_objects = shape_list.ShapeElementList()  # shape_list to contain all static elements
@@ -157,7 +158,7 @@ class GameView(View):
 
         # generating obstacles
         self.create_obstacles()
-        self.obstacles_update_batch()
+        self.create_obstacles_batch()
 
         # adding thread to timer func
         window.lobby.game.timer_time = window.lobby.game.max_time_s
@@ -420,7 +421,7 @@ class GameView(View):
 
     def pass_turn_to_next_player(self):
         game = self.window.lobby.game
-
+        self.timer.cancel()
         if self.is_game_end():
             self.game_finish()
             return
@@ -458,6 +459,7 @@ class GameView(View):
         # TODO: remade to change only one polygon, mb Batch.ivalidate will be useful
 
         window = self.window
+        game = window.lobby.game
         blow_radius = 25 * window.scale
         obstacle = window.lobby.game.obstacles[obstacle_index]
 
@@ -488,7 +490,7 @@ class GameView(View):
         pc.AddPath(clipper, pyclipper.PT_SUBJECT, True)
         if not pc.Execute(pyclipper.CT_DIFFERENCE):  # if whole clipping polygon is inside subject
             return
-        window.lobby.game.obstacles.pop(obstacle_index)  # deleting old obstacle
+        game.obstacles.pop(obstacle_index)  # deleting old obstacle
         pc.Clear()
         pc.AddPath(obstacle, pyclipper.PT_SUBJECT, True)
         pc.AddPath(clipper, pyclipper.PT_CLIP, True)
@@ -496,15 +498,45 @@ class GameView(View):
         for obstacle in new_obstacles:
             if not obstacle:
                 continue
-            window.lobby.game.obstacles.append(obstacle)
-        self.obstacles_update_batch()
+            game.obstacles.append(obstacle)
+
+        # deleting previous obstacle shape from batch
+        self.obstacle_body_batch_shapes.pop(obstacle_index)
+        self.obstacle_border_batch_shapes.pop(obstacle_index)
+
+        # creating new shape
+        for polygon in new_obstacles:
+            if not obstacle:
+                continue
+
+            # creating obstacle body
+            triangles = arcade.earclip.earclip(polygon)
+            obstacle = []
+
+            for tr in triangles:
+                obstacle.append(pyglet.shapes.Triangle(tr[0][0], tr[0][1], tr[1][0], tr[1][1], tr[2][0], tr[2][1],
+                                                       game.obstacles_color, batch=self.obstacles_batch))
+            self.obstacle_body_batch_shapes.append(obstacle)
+
+            # creating obstacle border
+            last_point = polygon[-1]
+            border = []
+            for point in polygon:
+                border.append(pyglet.shapes.Line(last_point[0], last_point[1], point[0], point[1],
+                                                 width=int(2 * self.window.scale),
+                                                 color=game.obstacles_border_color, batch=self.obstacles_batch))
+                last_point = point
+            self.obstacle_border_batch_shapes.append(border)
+
+
+
 
     def on_update(self, delta_time: float = 1 / 60):
         window = self.window
         game = window.lobby.game
 
         # if no time left, pass the turn to the next player
-        if self.window.lobby.game.timer_time == 0:
+        if self.window.lobby.game.timer_time <= 0:
             self.pass_turn_to_next_player()
             return
 
@@ -614,29 +646,30 @@ class GameView(View):
 
         arcade.finish_render()
 
-    def obstacles_update_batch(self):
+    def create_obstacles_batch(self):
         game = self.window.lobby.game
         self.obstacles_batch = pyglet.graphics.Batch()  # creating new batch
-        self.obstacle_batch_shapes = []
+        self.obstacle_body_batch_shapes = []
+        self.obstacle_border_batch_shapes = []
         for polygon in game.obstacles:
-            '''arcade.draw_polygon_filled(polygon, color=game.obstacles_color)
-            arcade.draw_polygon_outline(polygon, color=game.obstacles_border_color)'''
-            triangles = arcade.earclip.earclip(polygon)
 
-            # creating obstacle body
+            # creating obstacle body from triangles
+            triangles = arcade.earclip.earclip(polygon)
+            obstacle = []
             for tr in triangles:
-                element = pyglet.shapes.Triangle(tr[0][0], tr[0][1], tr[1][0], tr[1][1], tr[2][0], tr[2][1],
-                                                 game.obstacles_color, batch=self.obstacles_batch)
-                self.obstacle_batch_shapes.append(element)
+                obstacle.append(pyglet.shapes.Triangle(tr[0][0], tr[0][1], tr[1][0], tr[1][1], tr[2][0], tr[2][1],
+                                                       game.obstacles_color, batch=self.obstacles_batch))
+            self.obstacle_body_batch_shapes.append(obstacle)
 
             # creating obstacle border
             last_point = polygon[-1]
+            border = []
             for point in polygon:
-                element = pyglet.shapes.Line(last_point[0], last_point[1], point[0], point[1],
-                                             width=int(2 * self.window.scale),
-                                             color=game.obstacles_border_color, batch=self.obstacles_batch)
-                self.obstacle_batch_shapes.append(element)
+                border.append(pyglet.shapes.Line(last_point[0], last_point[1], point[0], point[1],
+                                                 width=int(2 * self.window.scale),
+                                                 color=game.obstacles_border_color, batch=self.obstacles_batch))
                 last_point = point
+            self.obstacle_border_batch_shapes.append(border)
 
     def obstacles_draw(self):
         batch = self.obstacles_batch
