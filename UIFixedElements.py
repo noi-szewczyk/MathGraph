@@ -90,7 +90,7 @@ class AdvancedUIInputText(UIInputText):
         self.layout = pyglet.text.layout.IncrementalTextLayout(
             self.doc, width - self.LAYOUT_OFFSET, height, multiline=multiline)
         self.layout.x += self.LAYOUT_OFFSET
-        self.caret = Caret(self.layout, color=caret_color)
+        self.caret = Caret(self.layout, color=(3, 11, 163, 255))
         self.caret.visible = True
         self.caret.PERIOD = 0.2
         self._blink_state = self._get_caret_blink_state()
