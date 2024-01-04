@@ -5,72 +5,95 @@ MathGraph is not typical game: here you must use mathematical equations to kill 
 The game field represents coordinate plane where you have to draw graphs of functions, which represents some kind of 
 bullet.
 Your success depends only on your math skill and practice.<br>
-Before you'll start the game, you should set the game parameters or leave the default ones.
+
 <hr>
 
-## let's take a closer look at the settings
-<br>![settings](resources/lobby%20settings.png)
-+ if `Marks on axes` is on, you will see auxiliary marks on the axes to make the game a bit easier
-+ you can change `Marks frequency` parameter to adjust how often will be drawn auxiliary marks if graph units,<br>
+## lobby settings
+Before you'll start the game, you should set the game parameters or leave the default ones. You can change game process 
+by changing them and adjust game difficulty for you.
+On the left side of lobby you'll see a large window with settings, let's take a closer look at them:
+
+
+![settings](resources/lobby%20settings.png)
++ if `Marks on axes` is on, you will see auxiliary marks on the axes, but without numbers. It can make the game really easier
+because the main challenge of the game, after you learned how to write equations, is exactly the exact coordinate determining.
++ you can change `Marks frequency` parameter to adjust how often will be drawn auxiliary marks in graph units,
 if they are on of course.
 + `Friendly fire` switch allows you to set opportunity of killing your teammates
-+ `Y axis limit` sets the graph highest y value (vertical edge). By changing this value you change the scale of whole<br>
-graph, so `X axis limit` will be changed at the same time.
-+ `game field width` sets the proportion of game field. While its height is constant, you can make the width less or<br>
-more by cutting some part of graph. Thus, It influences the `X axis limit value`, but not the Y.<br>
-You can even make the field square! 
++ `Y axis limit` sets the graph highest y value (vertical edge, not the highest mark). 
+By changing this value you change the scale of whole graph, so `X axis limit` will be changed at the same time.
++ `game field width` sets the proportion of game field. While its height is constant, you can make the width less or 
+more by cutting some part of graph. Thus, It influences the `X axis limit value`, but not the Y. 
+You can even make the field square! <br>
+Honestly, it's useless, because there is no sense to make game field less, but if you are bored or just wanna see beautiful
+background, set it to minimum value.
 + `Time limit` sets the time which every player has to write equation and to shoot.
-+ `obstacle frequency` shows how much obstacles will be spawned. Higher values correspond to higher difficulty of the<br>
++ `obstacle frequency` shows how much obstacles will be spawned. Higher values correspond to higher difficulty of the
 game process, but they make it more interesting. If you are new, it's recommended to leave it on 20 or even decrease.
 <br><br>
-### At the bottom part of lobby you may see 2 teams and 3 buttons
+### A little more about lobby
+At the bottom part of lobby you may see 2 team. There cannot be more than 5 players in one team,
+therefore the maximum amount of players is 10. Red color of the nick emphasizes that it's you. 
+
 ![bottom](resources/lobby%20downside.png)
-There cannot be more than 5 players in one team, therefore the maximum amount of players is 10.<br>
-Red color of the nick emphasizes that it's you. In the right-top corner of players avatar you may see 2 buttons:
+
+In the right-top corner of players avatar you may see 2 buttons:
 * double arrow is used to transfer a player to another team
-* cross is used to kick player from lobby. Note, that you cannot kick yourself
+* cross button is used to kick player from lobby. Note, that you cannot kick yourself
 
 At the bottom there are 3 buttons:
-* `add bot` merely adds new bot to the lobby to the first not full team. Then you can transfer him to the other team,<br>
+* `add bot` merely adds new bot to the lobby to the first not full team. Then you can transfer him to the other team,
 if you want so. If all team are full, bot won't be added
 * `play game` starts new game with selected settings
 * `exit` is used to exit lobby
 
 # game interface
 ![game field](resources/game%20field.png)
-In the center of the game field there are 2 axes arrows. If you turned on `Marks on axes`, you will see auxiliary marks<br>
-without numbers on axes every `Marks frequency` units. Regardless is the auxiliary marks on, you'll see the marks with<br>
-numbers on the ends of axes or on the last marks.<br><br>
-Blue arrows represents alive players. Player with red nick is active now, you need to wait for your turn. When a player<br>
+In the center of the game field there are 2 axes arrows. If you turned on `Marks on axes`, you will see auxiliary marks
+without numbers on axes every <`Marks frequency`> units. Regardless is the auxiliary marks on, you'll see the marks with
+numbers on the ends of axes or on the last marks.
+
+
+Blue arrows represents alive players. Red color of nick indicates an active player. When a player
 dies, his texture changes and nick becomes black.
-<br><br>
+
+
+
 ![bottom](resources/game%20bottom%20panel.png)
-At the center of the bottom panel you have input field to write your equation. It's big enough for almost all equations,<br>
-but whenever necessary, it can be scrolled down. You can use combinations such as `ctrl+A`,`ctrl+X`,`ctrl+C` and `ctrl+V` 
-when it's active (you must click it).<br><br>
-On the left side from input field is located timer. When there are 15 seconds left, it starts blinking red.<br><br>
-From the right side of input field you will see fire button, which will be active only when you are active player.<br><br>
-`Skip vote` allows you to vote for change map, if it was generated bad. The map will be changed only when all alive players<br>
-press this button.
+At the center of the bottom panel you have input field to write your equation into. It's big enough for almost all equations,
+but whenever necessary, it can be scrolled down. You can use combinations such as `ctrl+A`,`ctrl+X`,`ctrl+C` and `ctrl+V`,
+or manipulate the caret using arrows when it's active (you must click it if not).
+
+On the left side from input field is located timer. When there are 15 seconds left, it starts blinking red.
+
+From the right side of input field you will see fire button, which will be active only when you are active player.
+
+`Skip vote` allows you to vote for change map, if it was generated bad. The map will be changed only when all alive players 
+press this button. If you play solo game, it will change map immediately.
 
 # how to play?
-So, first of all let's consider the game mechanic:<br>
-You need to write a mathematical formula in input field. After you click the fire button, if your formula is correct,<br>
-a red line will start to draw a graph of the function. If the graph touches player, it will kill them, but when it crosses over<br>
-edge of graph or hits the obstacle, it stops and next alive player form opposite team will take turn.<br>
+So, first of all let's consider the game mechanic:
 
-Your aim is to create such formula, which will avoid all obstacles on your way and touch as much enemies as possible.<br>
-Be careful and try not to kill your teammates!<br>
+You need to write a mathematical formula in input field (only the right part of it without "y=", etc.).
+After you click the fire button, if your formula is correct,
+a red line will start to draw a graph of the function. If the graph touches a player, it will kill them, but when it crosses the
+edge of graph or hits an obstacle, it will stop, and next alive player form opposite team will take turn.
 
-If you hit the obstacle, it will be blown up and some part of them will be destroyed.<br>
 
-The main feature of the game is function translation. What does it mean? It means, that function will be always coming out<br>
-of the center of player sprite. To obtain such result, it will be lifted up or down. Thus, any constant values doesn't change<br>
+Your aim is to create such formula, which will avoid all obstacles on your way and touch as many enemies as possible.
+Be careful and try not to kill your teammates!
+
+If you hit the obstacle, it will be blown up and some part of them will be destroyed.
+
+The main feature of the game is function translation. What does it mean? It means, that function will be always coming out
+of the center of player sprite. To obtain such result, it will be lifted up or down. Thus, any constant values doesn't change
 anything. You need to think only about how function will raise after your position,and it's a bit hard for the first time.
+
 ![translation](resources/translation%20example.jpg)
 
-Try to make some formulas, which grows only on certain parts and then combine them. For example `(abs(x-a)-abs(x-b))` 
-will grow only on [a;b] and combining them you can make steps up or down:<br>
+Hint: try to make some formulas, which grows only on certain parts and then combine them. For example `(abs(x-a)-abs(x-b))` 
+will be growing only on [a;b] and combining them you can make steps up or down:
+
 ![example](resources/steps%20example.png)
 
 Next, it's up to you, I won't spoiler ;)
